@@ -14,7 +14,7 @@ Anschließend das Repository klonen und in das Verzeichnis wechseln ...
 ~\ta-rss> cargo run
 ```
 
-# How To Use
+## How To Use
 In der Liste kann mit den Pfeiltasten navigiert werden.
 
 `Space` öffnet ein Popup bzw. schließt es wieder.
