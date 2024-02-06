@@ -1,3 +1,4 @@
+use clap::Parser;
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use std::io;
@@ -8,9 +9,26 @@ use ta_rss::tui::Tui;
 
 #[tokio::main]
 async fn main() -> AppResult<()> {
-    // Create an application.
+    let args = Arguments::parse();
     let mut app = App::new().await;
 
+    if !args.add.is_empty() {
+        app.add_feed(&args.add).await;
+        println!("Added feed: {}", args.add);
+    } else {
+        start_tui(app).await?;
+    }
+    Ok(())
+}
+
+#[derive(Parser, Debug)]
+struct Arguments {
+    /// URL of the feed to add
+    #[arg(short, long, default_value_t=String::from(""))]
+    add: String,
+}
+
+async fn start_tui(mut app: App) -> AppResult<()> {
     // Initialize the terminal user interface.
     let backend = CrosstermBackend::new(io::stderr());
     let terminal = Terminal::new(backend)?;
