@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use atom_syndication::Feed;
+use futures::future::join_all;
 use rss::Channel;
 
 #[derive(Debug)]
@@ -19,30 +20,21 @@ pub async fn fetch_and_parse_feed(url: &str) -> Result<FeedType, String> {
 
     // Try parsing as RSS
     if let Ok(rss_channel) = Channel::from_str(&feed_string) {
-        dbg!("Parsing as RSS feed");
         Ok(FeedType::Rss(rss_channel))
     } else if let Ok(atom_feed) = Feed::from_str(&feed_string) {
-        dbg!("Parsing as Atom feed");
         Ok(FeedType::Feed(atom_feed))
     } else {
         Err("Failed to parse as RSS or Atom feed".to_string())
     }
 }
 
-pub async fn load_feed_titles() -> Vec<String> {
-    let feeds = vec![
-        fetch_and_parse_feed("https://alternativeto.net/news/feed/")
-            .await
-            .unwrap(),
-        fetch_and_parse_feed("https://rss.golem.de/rss.php?feed=ATOM1.0")
-            .await
-            .unwrap(),
-    ];
+pub async fn load_feed_titles(urls: &Vec<String>) -> Vec<String> {
+    let feeds = join_all(urls.iter().map(|url| fetch_and_parse_feed(url))).await;
 
     let mut titles = vec![];
 
     for feed in feeds {
-        match feed {
+        match feed.unwrap() {
             FeedType::Rss(channel) => channel.items().iter().for_each(|item| {
                 titles.push(item.title().unwrap().to_string());
             }),

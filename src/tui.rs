@@ -8,27 +8,27 @@ use ratatui::Terminal;
 use std::io;
 use std::panic;
 
-/// Representation of a terminal user interface.
-///
-/// It is responsible for setting up the terminal,
-/// initializing the interface and handling the draw events.
+// Representation of a terminal user interface.
+//
+// It is responsible for setting up the terminal,
+// initializing the interface and handling the draw events.
 #[derive(Debug)]
 pub struct Tui<B: Backend> {
-    /// Interface to the Terminal.
+    // Interface to the Terminal.
     terminal: Terminal<B>,
-    /// Terminal event handler.
+    // Terminal event handler.
     pub events: EventHandler,
 }
 
 impl<B: Backend> Tui<B> {
-    /// Constructs a new instance of [`Tui`].
+    // Constructs a new instance of [`Tui`].
     pub fn new(terminal: Terminal<B>, events: EventHandler) -> Self {
         Self { terminal, events }
     }
 
-    /// Initializes the terminal interface.
-    ///
-    /// It enables the raw mode and sets terminal properties.
+    // Initializes the terminal interface.
+    //
+    // It enables the raw mode and sets terminal properties.
     pub fn init(&mut self) -> AppResult<()> {
         terminal::enable_raw_mode()?;
         crossterm::execute!(io::stderr(), EnterAlternateScreen, EnableMouseCapture)?;
@@ -46,28 +46,28 @@ impl<B: Backend> Tui<B> {
         Ok(())
     }
 
-    /// [`Draw`] the terminal interface by [`rendering`] the widgets.
-    ///
-    /// [`Draw`]: ratatui::Terminal::draw
-    /// [`rendering`]: crate::ui:render
+    // [`Draw`] the terminal interface by [`rendering`] the widgets.
+    //
+    // [`Draw`]: ratatui::Terminal::draw
+    // [`rendering`]: crate::ui:render
     pub fn draw(&mut self, app: &mut App) -> AppResult<()> {
         self.terminal.draw(|frame| ui::render(app, frame))?;
         Ok(())
     }
 
-    /// Resets the terminal interface.
-    ///
-    /// This function is also used for the panic hook to revert
-    /// the terminal properties if unexpected errors occur.
+    // Resets the terminal interface.
+    //
+    // This function is also used for the panic hook to revert
+    // the terminal properties if unexpected errors occur.
     fn reset() -> AppResult<()> {
         terminal::disable_raw_mode()?;
         crossterm::execute!(io::stderr(), LeaveAlternateScreen, DisableMouseCapture)?;
         Ok(())
     }
 
-    /// Exits the terminal interface.
-    ///
-    /// It disables the raw mode and reverts back the terminal properties.
+    // Exits the terminal interface.
+    //
+    // It disables the raw mode and reverts back the terminal properties.
     pub fn exit(&mut self) -> AppResult<()> {
         Self::reset()?;
         self.terminal.show_cursor()?;

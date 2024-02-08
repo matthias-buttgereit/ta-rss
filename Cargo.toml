@@ -8,12 +8,12 @@ edition = "2021"
 [dependencies]
 anyhow = "1"
 atom_syndication = "0.12"
-clap = { version = "4.4.18", features = ["derive"] }
+clap = { version = "4.4", features = ["derive"] }
 crossterm = { version = "0.27", features = ["event-stream"] }
-futures = "0.3.30"
-ratatui = "0.26.0"
+futures = "0.3"
+ratatui = "0.26"
 reqwest = { version = "0.11", features = ["blocking"] }
 rss = { version = "2", features = ["atom", "atom_syndication"] }
-serde = { version = "1.0.196", features = ["derive"] }
-serde_json = "1.0.113"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 tokio = { version = "1.35", features = ["full"] }

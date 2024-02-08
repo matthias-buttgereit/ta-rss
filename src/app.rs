@@ -1,66 +1,61 @@
 use ratatui::widgets::ListState;
-use serde::{Deserialize, Serialize};
 use std::error;
 
 use crate::utility::{load_feed_titles, FeedType};
 
-/// Application result type.
+// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
-/// Application.
+// Application.
 #[derive(Debug)]
 pub struct App {
-    /// Is the application running?
+    // Is the application running?
     pub running: bool,
-    /// counter
-    pub test_feeds: Vec<String>,
-    /// list state
+    // list state
     pub list_state: ListState,
-    /// popup
-    pub popup_enabled: bool,
-    /// feeds
-    pub feeds: Vec<FeedType>,
-    /// state of the app
-    /// #[allow(dead_code)]
+    // popup
+    pub content_popup_open: bool,
+    // feeds
+    pub feeds: Vec<String>,
+    // state of the app
     pub state: AppState,
-    /// feed urls
-    pub feed_urls: FeedURLs,
+    // feed urls
+    pub feed_urls: Vec<String>,
 }
 
 impl Default for App {
     fn default() -> Self {
         Self {
             running: true,
-            test_feeds: vec![],
-            list_state: ListState::default().with_selected(Some(0)),
-            popup_enabled: false,
             feeds: vec![],
+            list_state: ListState::default().with_selected(Some(0)),
+            content_popup_open: false,
             state: AppState::Loading,
-            feed_urls: FeedURLs {feeds: vec![]},
+            feed_urls: vec![],
         }
     }
 }
 
 impl App {
-    /// Constructs a new instance of [`App`].
+    // Constructs a new instance of [`App`].
     pub async fn new() -> Self {
-        let feed_urls = FeedURLs::load();
+        let feed_urls = Self::load();
+        let feeds = load_feed_titles(&feed_urls).await;
 
         Self {
             running: true,
             list_state: ListState::default().with_selected(Some(0)),
-            test_feeds: load_feed_titles().await,
-            popup_enabled: false,
-            feeds: vec![],
+            content_popup_open: false,
+            feeds,
             state: AppState::Loading,
-            feed_urls: feed_urls,
+            feed_urls,
         }
     }
 
-    /// Handles the tick event of the terminal.
+    // Handles the tick event of the terminal.
     pub fn tick(&self) {}
 
-    /// Set running to false to quit the application.
+    // Set running to false to quit the application.
     pub fn quit(&mut self) {
         self.running = false;
     }
@@ -68,7 +63,7 @@ impl App {
     pub fn select_previous(&mut self) {
         if let Some(index) = self.list_state.selected() {
             self.list_state.select(Some(
-                (index + self.test_feeds.len() - 1) % self.test_feeds.len(),
+                (index + self.feeds.len() - 1) % self.feeds.len(),
             ));
         }
     }
@@ -76,13 +71,27 @@ impl App {
     pub fn select_next(&mut self) {
         if let Some(index) = self.list_state.selected() {
             self.list_state
-                .select(Some((index + 1) % self.test_feeds.len()));
+                .select(Some((index + 1) % self.feeds.len()));
         }
     }
 
     pub async fn add_feed(&mut self, url: &str) {
-        self.feed_urls.feeds.push(url.to_string());
-        self.feed_urls.save();
+        self.feed_urls.push(url.to_string());
+        self.save();
+    }
+
+    fn load() -> Vec<String> {
+        let feeds = match std::fs::read_to_string("feeds.json") {
+            Ok(valid_content) => serde_json::from_str(&valid_content).unwrap(),
+            Err(_) => Vec::new(),
+        };
+
+        feeds
+    }
+
+    fn save(&self) {
+        let content = serde_json::to_string(&self.feed_urls).unwrap();
+        std::fs::write("feeds.json", content).unwrap();
     }
 }
 
@@ -97,25 +106,3 @@ pub enum AppState {
 
 #[derive(Debug)]
 pub struct _Feed {}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct FeedURLs {
-    pub feeds: Vec<String>,
-}
-impl FeedURLs {
-    fn load() -> Self {
-        let feeds = match std::fs::read_to_string("feeds.json") {
-            Ok(valid_content) => {
-                serde_json::from_str(&valid_content).unwrap()
-            },
-            Err(_) => Vec::new(),
-        };
-
-        Self { feeds }
-    }
-
-    fn save(&self) {
-        let content = serde_json::to_string(&self.feeds).unwrap();
-        std::fs::write("feeds.json", content).unwrap();
-    }
-}
