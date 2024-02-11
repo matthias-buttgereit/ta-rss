@@ -14,7 +14,8 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 app.quit();
             }
         }
-        // Selection
+
+        // Navigating within the list of feeds
         KeyCode::Up => {
             if !app.content_popup_open {
                 app.select_previous();

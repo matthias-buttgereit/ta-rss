@@ -1,7 +1,7 @@
 use ratatui::widgets::ListState;
 use std::error;
 
-use crate::utility::{load_feed_titles, FeedType};
+use crate::{load_feed_titles, FeedType};
 
 // Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -62,16 +62,14 @@ impl App {
 
     pub fn select_previous(&mut self) {
         if let Some(index) = self.list_state.selected() {
-            self.list_state.select(Some(
-                (index + self.feeds.len() - 1) % self.feeds.len(),
-            ));
+            self.list_state
+                .select(Some((index + self.feeds.len() - 1) % self.feeds.len()));
         }
     }
 
     pub fn select_next(&mut self) {
         if let Some(index) = self.list_state.selected() {
-            self.list_state
-                .select(Some((index + 1) % self.feeds.len()));
+            self.list_state.select(Some((index + 1) % self.feeds.len()));
         }
     }
 
@@ -81,12 +79,10 @@ impl App {
     }
 
     fn load() -> Vec<String> {
-        let feeds = match std::fs::read_to_string("feeds.json") {
+        match std::fs::read_to_string("feeds.json") {
             Ok(valid_content) => serde_json::from_str(&valid_content).unwrap(),
             Err(_) => Vec::new(),
-        };
-
-        feeds
+        }
     }
 
     fn save(&self) {
