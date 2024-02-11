@@ -1,4 +1,4 @@
-use crate::app::{App, AppResult};
+use crate::app::{App, AppResult, AppState, _Feed};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 // Handles the key events and updates the state of [`App`].
@@ -16,27 +16,41 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         }
 
         // Navigating within the list of feeds
-        KeyCode::Up => {
-            if !app.content_popup_open {
+        KeyCode::Up => match app.state {
+            AppState::List(_) => {
                 app.select_previous();
             }
-        }
-        KeyCode::Down => {
-            if !app.content_popup_open {
+            _ => {
+                todo!()
+            }
+        },
+        KeyCode::Down => match app.state {
+            AppState::List(_) => {
                 app.select_next();
             }
-        }
+            _ => {
+                todo!()
+            }
+        },
         // Popup handlers
-        KeyCode::Esc => {
-            if app.content_popup_open {
-                app.content_popup_open = false;
-            } else {
+        KeyCode::Esc => match app.state {
+            AppState::List(_) => {
                 app.quit();
             }
-        }
-        KeyCode::Char(' ') => {
-            app.content_popup_open = !app.content_popup_open;
-        }
+            AppState::Popup(_) => {
+                app.state = AppState::List(vec![]);
+            }
+            _ => {}
+        },
+        KeyCode::Char(' ') => match app.state {
+            AppState::List(_) => {
+                app.state = AppState::Popup(_Feed {});
+            }
+            AppState::Popup(_) => {
+                app.state = AppState::List(vec![]);
+            }
+            _ => {}
+        },
         _ => {}
     }
     Ok(())

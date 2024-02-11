@@ -1,7 +1,7 @@
 use ratatui::widgets::ListState;
 use std::error;
 
-use crate::{load_feed_titles, FeedType};
+use crate::feed::load_feed_titles;
 
 // Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -13,8 +13,6 @@ pub struct App {
     pub running: bool,
     // list state
     pub list_state: ListState,
-    // popup
-    pub content_popup_open: bool,
     // feeds
     pub feeds: Vec<String>,
     // state of the app
@@ -29,8 +27,7 @@ impl Default for App {
             running: true,
             feeds: vec![],
             list_state: ListState::default().with_selected(Some(0)),
-            content_popup_open: false,
-            state: AppState::Loading,
+            state: AppState::List(vec![]),
             feed_urls: vec![],
         }
     }
@@ -45,9 +42,8 @@ impl App {
         Self {
             running: true,
             list_state: ListState::default().with_selected(Some(0)),
-            content_popup_open: false,
             feeds,
-            state: AppState::Loading,
+            state: AppState::List(vec![]),
             feed_urls,
         }
     }
@@ -94,7 +90,7 @@ impl App {
 #[derive(Debug)]
 pub enum AppState {
     Loading,
-    Loaded(FeedType),
+    Loaded,
     Error,
     Popup(_Feed),
     List(Vec<_Feed>),
