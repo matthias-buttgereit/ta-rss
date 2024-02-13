@@ -1,7 +1,8 @@
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style},
-    widgets::{Block, BorderType, Clear, List},
+    text::Line,
+    widgets::{Block, BorderType, Clear, List, Paragraph, Wrap},
     Frame,
 };
 
@@ -16,7 +17,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         .border_type(BorderType::Rounded)
         .style(Style::default());
 
-    let feed_list = List::new(app.feeds.clone())
+    let feed_list: List = List::new(app.feeds.iter().map(|feed| feed.title().clone()))
         .highlight_style(
             Style::default()
                 .add_modifier(Modifier::BOLD)
@@ -26,11 +27,28 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         .block(block);
 
     frame.render_stateful_widget(feed_list, area, &mut app.list_state);
-    if let AppState::Popup(_) = app.state {
-        let block = Block::bordered().title("Popup");
+    if let AppState::Popup(feed) = &app.state {
+        let block = Block::bordered();
         let area = centered_rect(90, 90, area);
         frame.render_widget(Clear, area); //this clears out the background
         frame.render_widget(block, area);
+        let content_area = Rect {
+            x: area.x + 2,
+            y: area.y + 2,
+            width: area.width - 4,
+            height: area.height - 4,
+        };
+        frame.render_widget(Line::raw(feed.title()), content_area);
+
+        frame.render_widget(
+            Paragraph::new(feed.description()).wrap(Wrap { trim: false }),
+            Rect {
+                x: area.x + 2,
+                y: area.y + 4,
+                width: area.width - 4,
+                height: area.height - 8,
+            },
+        );
     }
 }
 

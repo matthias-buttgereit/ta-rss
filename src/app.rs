@@ -1,5 +1,6 @@
 use crate::feed::Feed;
 use ratatui::widgets::ListState;
+use reqwest::Client;
 use std::error;
 use tokio::sync::mpsc;
 
@@ -18,38 +19,52 @@ pub struct App {
     // state of the app
     pub state: AppState,
     pub feed_urls: Vec<String>,
-}
-
-impl Default for App {
-    fn default() -> Self {
-        Self {
-            running: true,
-            feeds: vec![],
-            list_state: ListState::default().with_selected(Some(0)),
-            state: AppState::List(vec![]),
-            feed_urls: vec![],
-        }
-    }
+    pub receiver: mpsc::Receiver<Feed>,
 }
 
 impl App {
     // Constructs a new instance of [`App`].
     pub async fn new() -> Self {
-        let (tx, mut _rx) = mpsc::channel::<Feed>(10);
+        let (tx, rx) = mpsc::channel::<Feed>(10);
         let feed_urls = Self::load();
-        let _a = Feed::fetch_and_parse(tx, feed_urls.clone());
+        let client = Client::new();
+
+        for url in feed_urls.clone() {
+            let tx = tx.clone();
+            let client = client.clone();
+            tokio::spawn(async move {
+                let result = client.get(url).send().await.unwrap().bytes().await.unwrap();
+                if let Ok(feed) = rss::Channel::read_from(&result[..]) {
+                    for item in feed.items {
+                        tx.send(Feed::Item(item)).await.unwrap_or_default();
+                    }
+                } else if let Ok(channel) = atom_syndication::Feed::read_from(&result[..]) {
+                    for entry in channel.entries {
+                        tx.send(Feed::Entry(entry)).await.unwrap_or_default();
+                    }
+                }
+            });
+        }
 
         Self {
             running: true,
-            list_state: ListState::default().with_selected(Some(0)),
+            list_state: ListState::default(),
             feeds: vec![],
             state: AppState::List(vec![]),
             feed_urls,
+            receiver: rx,
         }
     }
 
     // Handles the tick event of the terminal.
-    pub fn tick(&self) {}
+    pub fn tick(&mut self) {
+        if let Ok(feed) = self.receiver.try_recv() {
+            self.feeds.push(feed);
+            if self.feeds.len() == 1 {
+                self.list_state.select(Some(0));
+            }
+        }
+    }
 
     // Set running to false to quit the application.
     pub fn quit(&mut self) {
@@ -92,7 +107,7 @@ pub enum AppState {
     Loading,
     Loaded,
     Error,
-    Popup(_Feed),
+    Popup(Feed),
     List(Vec<_Feed>),
 }
 
