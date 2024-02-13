@@ -1,7 +1,7 @@
+use crate::feed::Feed;
 use ratatui::widgets::ListState;
 use std::error;
-
-use crate::feed::load_feed_titles;
+use tokio::sync::mpsc;
 
 // Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -17,7 +17,6 @@ pub struct App {
     pub feeds: Vec<String>,
     // state of the app
     pub state: AppState,
-    // feed urls
     pub feed_urls: Vec<String>,
 }
 
@@ -36,13 +35,14 @@ impl Default for App {
 impl App {
     // Constructs a new instance of [`App`].
     pub async fn new() -> Self {
+        let (tx, mut _rx) = mpsc::channel::<Feed>(10);
         let feed_urls = Self::load();
-        let feeds = load_feed_titles(&feed_urls).await;
+        let _a = Feed::fetch_and_parse(tx, feed_urls.clone());
 
         Self {
             running: true,
             list_state: ListState::default().with_selected(Some(0)),
-            feeds,
+            feeds: vec![],
             state: AppState::List(vec![]),
             feed_urls,
         }
