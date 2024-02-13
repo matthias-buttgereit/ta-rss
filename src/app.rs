@@ -14,7 +14,7 @@ pub struct App {
     // list state
     pub list_state: ListState,
     // feeds
-    pub feeds: Vec<String>,
+    pub feeds: Vec<Feed>,
     // state of the app
     pub state: AppState,
     pub feed_urls: Vec<String>,
