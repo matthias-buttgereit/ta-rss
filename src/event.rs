@@ -79,7 +79,7 @@ impl EventHandler {
                       },
 
                       CrosstermEvent::Paste(_) => {
-                        
+
                       },
                     }
                   }

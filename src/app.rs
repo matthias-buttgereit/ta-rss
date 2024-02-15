@@ -1,5 +1,6 @@
 use crate::feed::Feed;
 use ratatui::widgets::ListState;
+use ratatui_image::protocol::StatefulProtocol;
 use reqwest::Client;
 use std::error;
 use tokio::sync::mpsc;
@@ -8,7 +9,6 @@ use tokio::sync::mpsc;
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 // Application.
-#[derive(Debug)]
 pub struct App {
     // Is the application running?
     pub running: bool,
@@ -19,13 +19,17 @@ pub struct App {
     // state of the app
     pub state: AppState,
     pub feed_urls: Vec<String>,
-    pub receiver: mpsc::Receiver<Feed>,
+    pub feed_receiver: mpsc::Receiver<Feed>,
+    pub image_receiver: mpsc::Receiver<Box<dyn StatefulProtocol>>,
+    pub image_sender: mpsc::Sender<Box<dyn StatefulProtocol>>,
+    pub image: Option<Box<dyn StatefulProtocol>>,
 }
 
 impl App {
     // Constructs a new instance of [`App`].
     pub async fn new() -> Self {
         let (tx, rx) = mpsc::channel::<Feed>(10);
+        let (img_tx, img_rx) = mpsc::channel::<Box<dyn StatefulProtocol>>(1);
         let feed_urls = Self::load();
         let client = Client::new();
 
@@ -52,17 +56,24 @@ impl App {
             feeds: vec![],
             state: AppState::List(vec![]),
             feed_urls,
-            receiver: rx,
+            feed_receiver: rx,
+            image_receiver: img_rx,
+            image_sender: img_tx,
+            image: None,
         }
     }
 
     // Handles the tick event of the terminal.
     pub fn tick(&mut self) {
-        if let Ok(feed) = self.receiver.try_recv() {
+        if let Ok(feed) = self.feed_receiver.try_recv() {
             self.feeds.push(feed);
             if self.feeds.len() == 1 {
                 self.list_state.select(Some(0));
             }
+        }
+
+        if let Ok(image) = self.image_receiver.try_recv() {
+            self.image = Some(image);
         }
     }
 

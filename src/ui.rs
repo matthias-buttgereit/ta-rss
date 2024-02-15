@@ -5,6 +5,7 @@ use ratatui::{
     widgets::{Block, BorderType, Clear, List, Paragraph, Wrap},
     Frame,
 };
+use ratatui_image::StatefulImage;
 
 use crate::app::{App, AppState};
 
@@ -38,13 +39,48 @@ pub fn render(app: &mut App, frame: &mut Frame) {
             width: area.width - 4,
             height: area.height - 4,
         };
+
+        // // In case of image ...
+        // if let Feed::Item(item) = feed {
+        //     if let Some(media) = item.extensions().get("media") {
+        //         if let Some(content) = media.get("content") {
+        //             for ext in content {
+        //                 if let Some(image_url) = ext.attrs().get("url") {
+        //                     let image_bytes = tokio::spawn(future)
+        //                         reqwest::blocking::get(image_url).unwrap().bytes().unwrap();
+        //                     let b = image::load_from_memory(&image_bytes).unwrap();
+        //                     let mut picker = Picker::new((7, 9));
+        //                     picker.guess_protocol();
+
+        //                     let mut _aaa = picker.new_resize_protocol(b);
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+        // let sf_image = StatefulImage::new(None);
+        // frame.render_stateful_widget(sf_image, content_area, &mut aaa);
+
         frame.render_widget(Line::raw(feed.title()), content_area);
+        if let Some(image) = &mut app.image {
+            let sf_image = StatefulImage::new(None);
+            frame.render_stateful_widget(
+                sf_image,
+                Rect {
+                    x: content_area.x + 2,
+                    y: content_area.y + 2,
+                    width: content_area.width - 4,
+                    height: 20,
+                },
+                image,
+            );
+        }
 
         frame.render_widget(
             Paragraph::new(feed.description()).wrap(Wrap { trim: false }),
             Rect {
                 x: area.x + 2,
-                y: area.y + 4,
+                y: content_area.y + 22,
                 width: area.width - 4,
                 height: area.height - 8,
             },

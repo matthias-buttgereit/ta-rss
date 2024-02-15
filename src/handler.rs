@@ -1,5 +1,10 @@
-use crate::app::{App, AppResult, AppState};
+use crate::{
+    app::{App, AppResult, AppState},
+    feed::Feed,
+};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use ratatui_image::picker::Picker;
+use tokio::task::JoinHandle;
 
 // Handles the key events and updates the state of [`App`].
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
@@ -55,8 +60,46 @@ fn handle_char_keys(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         }
         KeyCode::Char(' ') => match app.state {
             AppState::List(_) => {
+                app.image = None;
                 let selected = app.list_state.selected().unwrap_or_default();
                 let selected_feed = app.feeds.get(selected).unwrap();
+                let tx = app.image_sender.clone();
+
+                let _handle: Option<JoinHandle<()>> = match selected_feed {
+                    Feed::Item(item) => match item.extensions().get("media") {
+                        Some(media) => match media.get("content") {
+                            Some(content) => {
+                                let mut counter = 0;
+                                loop {
+                                    let ext = &content[counter];
+                                    if ext.attrs().contains_key("url") {
+                                        let image_url = ext.attrs().get("url").unwrap().to_string();
+                                        break Some(tokio::spawn(async move {
+                                            let image_bytes = reqwest::get(image_url)
+                                                .await
+                                                .unwrap()
+                                                .bytes()
+                                                .await
+                                                .unwrap();
+
+                                            let b = image::load_from_memory(&image_bytes).unwrap();
+                                            let mut picker = Picker::new((6, 8));
+                                            picker.guess_protocol();
+
+                                            let image = picker.new_resize_protocol(b);
+                                            tx.send(image).await.unwrap();
+                                        }));
+                                    }
+                                    counter += 1;
+                                }
+                            }
+                            _ => None,
+                        },
+                        _ => None,
+                    },
+                    _ => None,
+                };
+
                 app.state = AppState::Popup(selected_feed.clone());
             }
             AppState::Popup(_) => {
