@@ -3,7 +3,7 @@ use crate::{
     feed::Feed,
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use ratatui_image::picker::Picker;
+use ratatui_image::picker::{Picker, ProtocolType};
 use tokio::task::JoinHandle;
 
 // Handles the key events and updates the state of [`App`].
@@ -83,8 +83,8 @@ fn handle_char_keys(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                                                 .unwrap();
 
                                             let b = image::load_from_memory(&image_bytes).unwrap();
-                                            let mut picker = Picker::new((6, 8));
-                                            picker.guess_protocol();
+                                            let mut picker = Picker::new((5, 10));
+                                            picker.protocol_type = ProtocolType::Halfblocks;
 
                                             let image = picker.new_resize_protocol(b);
                                             tx.send(image).await.unwrap();
