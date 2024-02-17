@@ -22,13 +22,19 @@ pub struct App {
     pub feed_receiver: mpsc::Receiver<Feed>,
     pub image_receiver: mpsc::Receiver<Box<dyn StatefulProtocol>>,
     pub image_sender: mpsc::Sender<Box<dyn StatefulProtocol>>,
-    pub image: Option<Box<dyn StatefulProtocol>>,
+    pub current_feed_image: Option<Box<dyn StatefulProtocol>>,
+}
+
+#[derive(Debug)]
+pub enum AppState {
+    Popup(Feed),
+    List,
 }
 
 impl App {
     // Constructs a new instance of [`App`].
     pub async fn new() -> Self {
-        let (tx, rx) = mpsc::channel::<Feed>(10);
+        let (tx, rx) = mpsc::channel::<Feed>(20);
         let (img_tx, img_rx) = mpsc::channel::<Box<dyn StatefulProtocol>>(1);
         let feed_urls = Self::load();
         let client = Client::new();
@@ -54,31 +60,41 @@ impl App {
             running: true,
             list_state: ListState::default(),
             feeds: vec![],
-            state: AppState::List(vec![]),
+            state: AppState::List,
             feed_urls,
             feed_receiver: rx,
             image_receiver: img_rx,
             image_sender: img_tx,
-            image: None,
+            current_feed_image: None,
         }
     }
 
     // Handles the tick event of the terminal.
     pub fn tick(&mut self) {
-        if let Ok(feed) = self.feed_receiver.try_recv() {
+        let mut new_feeds = false;
+        while let Ok(feed) = self.feed_receiver.try_recv() {
             self.feeds.push(feed);
-            if self.feeds.len() == 1 {
-                self.list_state.select(Some(0));
-            }
+            new_feeds = true;
+        }
+
+        if new_feeds {
+            self.feeds.sort();
+            self.feeds.reverse();
+        }
+
+        if self.list_state.selected().is_none() && !self.feeds.is_empty() {
+            self.list_state.select(Some(0));
         }
 
         if let Ok(image) = self.image_receiver.try_recv() {
-            self.image = Some(image);
+            self.current_feed_image = Some(image);
         }
     }
 
     // Set running to false to quit the application.
     pub fn quit(&mut self) {
+        self.image_receiver.close();
+        self.feed_receiver.close();
         self.running = false;
     }
 
@@ -112,15 +128,3 @@ impl App {
         std::fs::write("feeds.json", content).unwrap();
     }
 }
-
-#[derive(Debug)]
-pub enum AppState {
-    Loading,
-    Loaded,
-    Error,
-    Popup(Feed),
-    List(Vec<_Feed>),
-}
-
-#[derive(Debug)]
-pub struct _Feed {}
