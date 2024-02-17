@@ -35,7 +35,5 @@ While the list of feeds is displayed you can navigate the entries with the up an
 
 `Q`, `Ctrl+C` always quits the app.
 
-Aktuell sind noch zwei rss-URLs hardcoded in `utility.rs`
-
 ## Features
 
