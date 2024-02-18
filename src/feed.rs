@@ -1,7 +1,5 @@
 use atom_syndication::Text;
 use chrono::Datelike;
-use reqwest::Client;
-use tokio::sync::mpsc::Sender;
 
 #[derive(Clone, Debug)]
 pub enum Feed {
@@ -24,11 +22,11 @@ impl Feed {
         match self {
             Feed::Item(item) => match item.source() {
                 Some(source) => source.title().unwrap_or(source.url()).to_string(),
-                None => "".to_string(),
+                None => "a".to_string(),
             },
             Feed::Entry(entry) => match entry.source() {
                 Some(source) => source.title().value.to_string(),
-                None => "".to_string(),
+                None => "b".to_string(),
             },
         }
     }
@@ -57,27 +55,6 @@ impl Feed {
             time.format("%Y-%m-%d %H:%M").to_string()
         }
     }
-
-    pub async fn fetch_and_parse(tx: Sender<Feed>, feed_urls: Vec<String>) {
-        let client = Client::new();
-
-        for url in feed_urls {
-            let tx = tx.clone();
-            let client = client.clone();
-            tokio::spawn(async move {
-                let result = client.get(url).send().await.unwrap().bytes().await.unwrap();
-                if let Ok(feed) = rss::Channel::read_from(&result[..]) {
-                    for item in feed.items {
-                        tx.send(Feed::Item(item)).await.unwrap();
-                    }
-                } else if let Ok(channel) = atom_syndication::Feed::read_from(&result[..]) {
-                    for entry in channel.entries {
-                        tx.send(Feed::Entry(entry)).await.unwrap();
-                    }
-                }
-            });
-        }
-    }
 }
 
 impl PartialOrd for Feed {
@@ -88,7 +65,7 @@ impl PartialOrd for Feed {
 
 impl PartialEq for Feed {
     fn eq(&self, other: &Self) -> bool {
-        self.pub_date() == other.pub_date()
+        self.pub_date() == other.pub_date() && self.source_name() == other.source_name()
     }
 }
 
@@ -96,6 +73,6 @@ impl Eq for Feed {}
 
 impl Ord for Feed {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.pub_date().cmp(&other.pub_date())
+        other.pub_date().cmp(&self.pub_date())
     }
 }

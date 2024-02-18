@@ -1,4 +1,5 @@
 use crate::feed::Feed;
+use atom_syndication::Text;
 use ratatui::widgets::ListState;
 use ratatui_image::protocol::StatefulProtocol;
 use reqwest::Client;
@@ -32,7 +33,6 @@ pub enum AppState {
 }
 
 impl App {
-    // Constructs a new instance of [`App`].
     pub async fn new() -> Self {
         let (tx, rx) = mpsc::channel::<Feed>(20);
         let (img_tx, img_rx) = mpsc::channel::<Box<dyn StatefulProtocol>>(1);
@@ -40,26 +40,13 @@ impl App {
         let client = Client::new();
 
         for url in feed_urls.clone() {
-            let tx = tx.clone();
-            let client = client.clone();
-            tokio::spawn(async move {
-                let result = client.get(url).send().await.unwrap().bytes().await.unwrap();
-                if let Ok(feed) = rss::Channel::read_from(&result[..]) {
-                    for item in feed.items {
-                        tx.send(Feed::Item(item)).await.unwrap_or_default();
-                    }
-                } else if let Ok(channel) = atom_syndication::Feed::read_from(&result[..]) {
-                    for entry in channel.entries {
-                        tx.send(Feed::Entry(entry)).await.unwrap_or_default();
-                    }
-                }
-            });
+            fetch_and_parse_feeds(url, &tx, &client);
         }
 
         Self {
             running: true,
             list_state: ListState::default(),
-            feeds: vec![],
+            feeds: Vec::with_capacity(feed_urls.len() * 10),
             state: AppState::List,
             feed_urls,
             feed_receiver: rx,
@@ -71,15 +58,11 @@ impl App {
 
     // Handles the tick event of the terminal.
     pub fn tick(&mut self) {
-        let mut new_feeds = false;
         while let Ok(feed) = self.feed_receiver.try_recv() {
-            self.feeds.push(feed);
-            new_feeds = true;
-        }
-
-        if new_feeds {
-            self.feeds.sort();
-            self.feeds.reverse();
+            match self.feeds.binary_search(&feed) {
+                Ok(_) => {} // element already in vector @ `pos`
+                Err(pos) => self.feeds.insert(pos, feed),
+            }
         }
 
         if self.list_state.selected().is_none() && !self.feeds.is_empty() {
@@ -91,7 +74,7 @@ impl App {
         }
     }
 
-    // Set running to false to quit the application.
+    // Close all open channels before shutting down
     pub fn quit(&mut self) {
         self.image_receiver.close();
         self.feed_receiver.close();
@@ -127,4 +110,33 @@ impl App {
         let content = serde_json::to_string(&self.feed_urls).unwrap();
         std::fs::write("feeds.json", content).unwrap();
     }
+}
+
+fn fetch_and_parse_feeds(url: String, tx: &mpsc::Sender<Feed>, client: &Client) {
+    let tx = tx.clone();
+    let client = client.clone();
+    tokio::spawn(async move {
+        let result = client.get(url).send().await.unwrap().bytes().await.unwrap();
+        if let Ok(channel) = rss::Channel::read_from(&result[..]) {
+            for mut item in channel.items {
+                item.set_source(rss::Source {
+                    url: channel.link.to_string(),
+                    title: Some(channel.title.to_string()),
+                });
+                tx.send(Feed::Item(item)).await.unwrap_or_default();
+            }
+        } else if let Ok(feed) = atom_syndication::Feed::read_from(&result[..]) {
+            for mut entry in feed.entries {
+                let title = Text {
+                    value: feed.title.value.to_string(),
+                    ..Default::default()
+                };
+                entry.set_source(Some(atom_syndication::Source {
+                    title,
+                    ..Default::default()
+                }));
+                tx.send(Feed::Entry(entry)).await.unwrap_or_default();
+            }
+        }
+    });
 }
