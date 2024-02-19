@@ -1,6 +1,7 @@
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Rect},
     style::{Color, Modifier, Style},
+    text::Line,
     widgets::{block::Title, Block, BorderType, Clear, List, Paragraph, Wrap},
     Frame,
 };
@@ -12,68 +13,112 @@ use crate::{
 };
 
 pub fn render(app: &mut App, frame: &mut Frame) {
-    render_list(app, frame, frame.size());
+    let window_area = frame.size();
+    render_list(
+        app,
+        frame,
+        Rect {
+            height: window_area.height - 1,
+            ..window_area
+        },
+    );
 
-    if let AppState::Popup(feed) = &app.state {
-        let popup_area = centered_rect(90, 90, frame.size());
+    render_keybindings(
+        app,
+        frame,
+        Rect {
+            height: 1,
+            y: window_area.height - 1,
+            ..window_area
+        },
+    );
+
+    if let AppState::Popup(feed) = &app.app_state {
+        let popup_area = Rect {
+            x: (window_area.width / 2),
+            y: window_area.y + 1,
+            width: (window_area.width / 2),
+            height: window_area.height - 3,
+        };
         render_popup(app, frame, popup_area, feed);
     }
 }
 
-// helper function to create a centered rect using up certain percentage of the available rect `r`
-fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
-    let popup_layout = Layout::vertical([
-        Constraint::Percentage((100 - percent_y) / 2),
-        Constraint::Percentage(percent_y),
-        Constraint::Percentage((100 - percent_y) / 2),
-    ])
-    .split(r);
-
-    Layout::horizontal([
-        Constraint::Percentage((100 - percent_x) / 2),
-        Constraint::Percentage(percent_x),
-        Constraint::Percentage((100 - percent_x) / 2),
-    ])
-    .split(popup_layout[1])[1]
+fn render_keybindings(app: &mut App, frame: &mut Frame, area: Rect) {
+    let mut keybindings = "↑↓: Navigate List | Space: Open Selected Feed | q: Quit".to_string();
+    if let AppState::Popup(_) = &app.app_state {
+        keybindings.push_str(" | o: Open Feed In Browser");
+    }
+    frame.render_widget(Line::raw(keybindings), area);
 }
 
 fn render_popup(app: &App, frame: &mut Frame, area: Rect, feed: &Feed) {
-    // Render popup window
+    // Extract and convert relevant data
+    let date = feed.pub_date_string();
+    let source = {
+        let mut source = feed.source_name();
+        let source_len = area.width as usize - (date.len() + 4);
+        source.truncate(source_len);
+        source
+    };
+    let title = Paragraph::new(feed.title()).wrap(Wrap { trim: true });
+    let description = Paragraph::new(feed.description()).wrap(Wrap { trim: true });
+    let image = &app.current_feed_image;
+
+    // Set-up layout
+    let title_area = Rect {
+        x: area.x + 2,
+        y: area.y + 2,
+        width: area.width - 4,
+        height: 2,
+    };
+    let mut image_area = Rect::default();
+    let mut y_coordinate = title_area.y + 3;
+    if image.is_some() {
+        image_area = Rect {
+            x: area.x + 2,
+            y: y_coordinate,
+            width: area.width - 4,
+            height: (area.width - 4) / 4, // clamp height to not overflow in short terminals
+        };
+    }
+    let description_area = Rect {
+        x: area.x + 2,
+        y: y_coordinate,
+        width: area.width - 4,
+        height: 10,
+    };
+
+    let popup_height = title_area.height + description_area.height + image_area.height + 6;
+    let popup_area = Rect {
+        height: popup_height,
+        ..area
+    };
+
+    // Render everything
     let block = Block::bordered()
-        .title(feed.source_name())
-        .title(Title::from(feed.pub_date_string()).alignment(Alignment::Right));
-    let area = centered_rect(90, 90, area);
+        .title(source)
+        .title(Title::from(date).alignment(Alignment::Right));
     // Clear the popup window
-    frame.render_widget(Clear, area);
-    frame.render_widget(block, area);
-
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .margin(2)
-        .constraints([
-            Constraint::Percentage(10),
-            Constraint::Percentage(40),
-            Constraint::Fill(1),
-        ])
-        .split(area);
-
+    frame.render_widget(Clear, popup_area);
+    frame.render_widget(block, popup_area);
     // Render feed title
-    frame.render_widget(
-        Paragraph::new(feed.title()).wrap(Wrap { trim: false }),
-        chunks[0],
-    );
-
-    // Render feed image if there is one
-    if let Some(image) = &app.current_feed_image {
+    frame.render_widget(title, title_area);
+    if let Some(image) = image {
         let sf_image = StatefulImage::new(None);
         let image = &mut image.clone();
-        frame.render_stateful_widget(sf_image, centered_rect(90, 100, chunks[1]), image);
+        frame.render_stateful_widget(sf_image, image_area, image);
+
+        y_coordinate = image_area.y + image_area.height + 1;
     }
 
     // Render feed description
     frame.render_widget(
-        Paragraph::new(feed.description()).wrap(Wrap { trim: false }),
-        chunks[2],
+        description,
+        Rect {
+            y: y_coordinate,
+            ..description_area
+        },
     );
 }
 

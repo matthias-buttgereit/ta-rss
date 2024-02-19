@@ -1,8 +1,6 @@
 use crate::feed::Feed;
-use atom_syndication::Text;
 use ratatui::widgets::ListState;
 use ratatui_image::protocol::StatefulProtocol;
-use reqwest::Client;
 use std::error;
 use tokio::sync::mpsc;
 
@@ -11,14 +9,10 @@ pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 // Application.
 pub struct App {
-    // Is the application running?
     pub running: bool,
-    // list state
     pub list_state: ListState,
-    // feeds
     pub feeds: Vec<Feed>,
-    // state of the app
-    pub state: AppState,
+    pub app_state: AppState,
     pub feed_urls: Vec<String>,
     pub feed_receiver: mpsc::Receiver<Feed>,
     pub image_receiver: mpsc::Receiver<Box<dyn StatefulProtocol>>,
@@ -30,6 +24,7 @@ pub struct App {
 pub enum AppState {
     Popup(Feed),
     List,
+    PastedLink(String),
 }
 
 impl App {
@@ -37,17 +32,16 @@ impl App {
         let (tx, rx) = mpsc::channel::<Feed>(20);
         let (img_tx, img_rx) = mpsc::channel::<Box<dyn StatefulProtocol>>(1);
         let feed_urls = Self::load();
-        let client = Client::new();
 
         for url in feed_urls.clone() {
-            fetch_and_parse_feeds(url, &tx, &client);
+            Feed::fetch_and_parse_feeds(url, &tx);
         }
 
         Self {
             running: true,
             list_state: ListState::default(),
             feeds: Vec::with_capacity(feed_urls.len() * 10),
-            state: AppState::List,
+            app_state: AppState::List,
             feed_urls,
             feed_receiver: rx,
             image_receiver: img_rx,
@@ -56,12 +50,10 @@ impl App {
         }
     }
 
-    // Handles the tick event of the terminal.
     pub fn tick(&mut self) {
         while let Ok(feed) = self.feed_receiver.try_recv() {
-            match self.feeds.binary_search(&feed) {
-                Ok(_) => {} // element already in vector @ `pos`
-                Err(pos) => self.feeds.insert(pos, feed),
+            if let Err(pos) = self.feeds.binary_search(&feed) {
+                self.feeds.insert(pos, feed);
             }
         }
 
@@ -85,12 +77,18 @@ impl App {
         if let Some(index) = self.list_state.selected() {
             self.list_state
                 .select(Some((index + self.feeds.len() - 1) % self.feeds.len()));
+            if let AppState::Popup(_) = &self.app_state {
+                self.update_selected_feed();
+            }
         }
     }
 
     pub fn select_next(&mut self) {
         if let Some(index) = self.list_state.selected() {
             self.list_state.select(Some((index + 1) % self.feeds.len()));
+            if let AppState::Popup(_) = &self.app_state {
+                self.update_selected_feed();
+            }
         }
     }
 
@@ -110,33 +108,10 @@ impl App {
         let content = serde_json::to_string(&self.feed_urls).unwrap();
         std::fs::write("feeds.json", content).unwrap();
     }
-}
 
-fn fetch_and_parse_feeds(url: String, tx: &mpsc::Sender<Feed>, client: &Client) {
-    let tx = tx.clone();
-    let client = client.clone();
-    tokio::spawn(async move {
-        let result = client.get(url).send().await.unwrap().bytes().await.unwrap();
-        if let Ok(channel) = rss::Channel::read_from(&result[..]) {
-            for mut item in channel.items {
-                item.set_source(rss::Source {
-                    url: channel.link.to_string(),
-                    title: Some(channel.title.to_string()),
-                });
-                tx.send(Feed::Item(item)).await.unwrap_or_default();
-            }
-        } else if let Ok(feed) = atom_syndication::Feed::read_from(&result[..]) {
-            for mut entry in feed.entries {
-                let title = Text {
-                    value: feed.title.value.to_string(),
-                    ..Default::default()
-                };
-                entry.set_source(Some(atom_syndication::Source {
-                    title,
-                    ..Default::default()
-                }));
-                tx.send(Feed::Entry(entry)).await.unwrap_or_default();
-            }
+    fn update_selected_feed(&mut self) {
+        if let Some(selected) = self.list_state.selected() {
+            self.app_state = AppState::Popup(self.feeds.get(selected).unwrap().clone());
         }
-    });
+    }
 }

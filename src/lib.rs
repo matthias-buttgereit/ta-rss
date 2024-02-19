@@ -1,7 +1,7 @@
 use app::{App, AppResult};
 use clap::Parser;
 use event::{Event, EventHandler};
-use handler::handle_key_events;
+use handler::{_handle_paste_event, handle_key_events};
 use ratatui::{backend::CrosstermBackend, Terminal};
 use std::io;
 use tui::Tui;
@@ -30,6 +30,7 @@ pub async fn start_tui(mut app: App) -> AppResult<()> {
             Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
             Event::Mouse(_) => {}
             Event::Resize(_, _) => {}
+            Event::Paste(text) => _handle_paste_event(&mut app, text)?,
         }
         // Render the user interface.
         tui.draw(&mut app)?;

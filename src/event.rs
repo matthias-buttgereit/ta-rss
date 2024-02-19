@@ -7,7 +7,7 @@ use tokio::sync::mpsc;
 use crate::app::AppResult;
 
 // Terminal events.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum Event {
     // Terminal tick.
     Tick,
@@ -17,6 +17,8 @@ pub enum Event {
     Mouse(MouseEvent),
     // Terminal resize.
     Resize(u16, u16),
+    // Paste event
+    Paste(String),
 }
 
 // Terminal event handler.
@@ -53,19 +55,19 @@ impl EventHandler {
                 tokio::select! {
                   _ = tick_delay => {
                     // Send a tick event
-                    _sender.send(Event::Tick).unwrap();
+                    _sender.send(Event::Tick).unwrap_or_default();
                   }
                   Some(Ok(evt)) = crossterm_event => {
                     // Match the received crossterm event
                     match evt {
                       CrosstermEvent::Key(key) => {
                         if key.kind == crossterm::event::KeyEventKind::Press {
-                          _sender.send(Event::Key(key)).unwrap();
+                          _sender.send(Event::Key(key)).unwrap_or_default();
                         }
                       },
 
                       CrosstermEvent::Mouse(mouse) => {
-                        _sender.send(Event::Mouse(mouse)).unwrap();
+                        _sender.send(Event::Mouse(mouse)).unwrap_or_default();
                       },
 
                       CrosstermEvent::Resize(x, y) => {
@@ -78,8 +80,8 @@ impl EventHandler {
                       CrosstermEvent::FocusGained => {
                       },
 
-                      CrosstermEvent::Paste(_) => {
-
+                      CrosstermEvent::Paste(text) => {
+                        _sender.send(Event::Paste(text)).unwrap_or_default();
                       },
                     }
                   }

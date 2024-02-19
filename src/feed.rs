@@ -1,5 +1,7 @@
 use atom_syndication::Text;
 use chrono::Datelike;
+use reqwest::Client;
+use tokio::sync::mpsc;
 
 #[derive(Clone, Debug)]
 pub enum Feed {
@@ -54,6 +56,44 @@ impl Feed {
         } else {
             time.format("%Y-%m-%d %H:%M").to_string()
         }
+    }
+
+    pub fn url(&self) -> String {
+        match self {
+            Feed::Item(item) => item.link().unwrap().to_string(),
+            Feed::Entry(entry) => entry.id().to_string(),
+        }
+    }
+
+    pub fn fetch_and_parse_feeds(url: String, tx: &mpsc::Sender<Feed>) {
+        let client = Client::new();
+
+        let tx = tx.clone();
+        let client = client.clone();
+        tokio::spawn(async move {
+            let result = client.get(url).send().await.unwrap().bytes().await.unwrap();
+            if let Ok(channel) = rss::Channel::read_from(&result[..]) {
+                for mut item in channel.items {
+                    item.set_source(rss::Source {
+                        url: channel.link.to_string(),
+                        title: Some(channel.title.to_string()),
+                    });
+                    tx.send(Feed::Item(item)).await.unwrap_or_default();
+                }
+            } else if let Ok(feed) = atom_syndication::Feed::read_from(&result[..]) {
+                for mut entry in feed.entries {
+                    let title = Text {
+                        value: feed.title.value.to_string(),
+                        ..Default::default()
+                    };
+                    entry.set_source(Some(atom_syndication::Source {
+                        title,
+                        ..Default::default()
+                    }));
+                    tx.send(Feed::Entry(entry)).await.unwrap_or_default();
+                }
+            }
+        });
     }
 }
 
