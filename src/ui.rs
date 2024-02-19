@@ -44,11 +44,8 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     }
 }
 
-fn render_keybindings(app: &mut App, frame: &mut Frame, area: Rect) {
-    let mut keybindings = "↑↓: Navigate List | Space: Open Selected Feed | q: Quit".to_string();
-    if let AppState::Popup(_) = &app.app_state {
-        keybindings.push_str(" | o: Open Feed In Browser");
-    }
+fn render_keybindings(_app: &mut App, frame: &mut Frame, area: Rect) {
+    let keybindings = "↑↓: Navigate List | Space: Open Selected Feed | q: Quit".to_string();
     frame.render_widget(Line::raw(keybindings), area);
 }
 
