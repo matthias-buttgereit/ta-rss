@@ -52,8 +52,19 @@ fn list_state(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                                 let ext = &content[counter];
                                 if ext.attrs().contains_key("url") {
                                     let image_url = ext.attrs().get("url").unwrap().to_string();
+
+                                    if image_url.is_empty() {
+                                        break None;
+                                    }
+
+                                    if app.cached_images.contains_key(&image_url) {
+                                        app.current_feed_image =
+                                            app.cached_images.get(&image_url).cloned();
+                                        break None;
+                                    }
+
                                     break Some(tokio::spawn(async move {
-                                        let image_bytes = reqwest::get(image_url)
+                                        let image_bytes = reqwest::get(&image_url)
                                             .await
                                             .unwrap()
                                             .bytes()
@@ -65,7 +76,7 @@ fn list_state(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                                         picker.protocol_type = ProtocolType::Halfblocks;
 
                                         let image = picker.new_resize_protocol(b);
-                                        tx.send(image).await.unwrap();
+                                        tx.send((image_url, image)).await.unwrap();
                                     }));
                                 }
                                 counter += 1;

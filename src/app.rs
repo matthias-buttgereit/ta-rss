@@ -1,11 +1,13 @@
 use crate::feed::Feed;
 use ratatui::widgets::ListState;
 use ratatui_image::protocol::StatefulProtocol;
+use rustc_hash::FxHashMap;
 use std::error;
 use tokio::sync::mpsc;
 
 // Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
+pub type ImageData = (String, Box<dyn StatefulProtocol>);
 
 // Application.
 pub struct App {
@@ -15,9 +17,10 @@ pub struct App {
     pub app_state: AppState,
     pub feed_urls: Vec<String>,
     pub feed_receiver: mpsc::Receiver<Feed>,
-    pub image_receiver: mpsc::Receiver<Box<dyn StatefulProtocol>>,
-    pub image_sender: mpsc::Sender<Box<dyn StatefulProtocol>>,
+    pub image_receiver: mpsc::Receiver<ImageData>,
+    pub image_sender: mpsc::Sender<ImageData>,
     pub current_feed_image: Option<Box<dyn StatefulProtocol>>,
+    pub cached_images: FxHashMap<String, Box<dyn StatefulProtocol>>,
 }
 
 #[derive(Debug)]
@@ -30,7 +33,7 @@ pub enum AppState {
 impl App {
     pub async fn new() -> Self {
         let (tx, rx) = mpsc::channel::<Feed>(20);
-        let (img_tx, img_rx) = mpsc::channel::<Box<dyn StatefulProtocol>>(1);
+        let (img_tx, img_rx) = mpsc::channel::<ImageData>(1);
         let feed_urls = Self::load();
 
         for url in feed_urls.clone() {
@@ -47,6 +50,7 @@ impl App {
             image_receiver: img_rx,
             image_sender: img_tx,
             current_feed_image: None,
+            cached_images: FxHashMap::default(),
         }
     }
 
@@ -61,7 +65,8 @@ impl App {
             self.list_state.select(Some(0));
         }
 
-        if let Ok(image) = self.image_receiver.try_recv() {
+        if let Ok((url, image)) = self.image_receiver.try_recv() {
+            self.cached_images.insert(url, image.clone());
             self.current_feed_image = Some(image);
         }
     }
@@ -114,4 +119,13 @@ impl App {
             self.app_state = AppState::Popup(self.feeds.get(selected).unwrap().clone());
         }
     }
+
+    pub fn display_feed(&mut self, feed: &Feed) {}
+}
+
+pub struct Popup {
+    pub title: String,
+    pub content: String,
+    pub image: Option<Box<dyn StatefulProtocol>>,
+    pub source: Option<String>,
 }
