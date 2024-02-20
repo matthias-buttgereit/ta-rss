@@ -110,8 +110,16 @@ impl App {
     }
 
     fn save(&self) {
+        let exe_path = env::current_exe().unwrap();
+        let output_file_path = exe_path
+        .parent()
+        .unwrap()
+        .join("feeds.json");
         let content = serde_json::to_string(&self.feed_urls).unwrap();
-        std::fs::write("feeds.json", content).unwrap();
+        match fs::write(output_file_path, content) {
+            Ok(_) => println!("File written successfully"),
+            Err(err) => eprintln!("Error while writing to the file: {}", err),
+        }
     }
 
     fn update_selected_feed(&mut self) {
