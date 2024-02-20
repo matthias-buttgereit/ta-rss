@@ -54,7 +54,7 @@ impl Feed {
         if time.year() == now.year() && time.month() == now.month() && time.day() == now.day() {
             time.format("%H:%M").to_string()
         } else {
-            time.format("%Y-%m-%d %H:%M").to_string()
+            time.format("%y-%m-%d %H:%M").to_string()
         }
     }
 
@@ -94,6 +94,26 @@ impl Feed {
                 }
             }
         });
+    }
+
+    pub fn get_image_url(&self) -> Option<String> {
+        match self {
+            Feed::Item(item) => {
+                if let Some(media) = item.extensions().get("media") {
+                    if let Some(content) = media.get("content") {
+                        for ext in content {
+                            if ext.attrs().contains_key("url") {
+                                return Some(ext.attrs().get("url").unwrap().to_string());
+                            }
+                        }
+                    }
+                }
+                None
+            },
+            Feed::Entry(_entry) => {
+                None
+            }
+        }
     }
 }
 

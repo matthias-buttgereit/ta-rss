@@ -45,7 +45,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
 }
 
 fn render_keybindings(_app: &mut App, frame: &mut Frame, area: Rect) {
-    let keybindings = "↑↓: Navigate List | Space: Open Selected Feed | q: Quit".to_string();
+    let keybindings = "↑↓: Navigate List | Space: Open Selected Feed | Q: Quit".to_string();
     frame.render_widget(Line::raw(keybindings), area);
 }
 
@@ -83,7 +83,7 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect, feed: &Feed) {
         x: area.x + 2,
         y: y_coordinate,
         width: area.width - 4,
-        height: 10,
+        height: 9,
     };
 
     let popup_height = title_area.height + description_area.height + image_area.height + 6;
@@ -114,9 +114,16 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect, feed: &Feed) {
         description,
         Rect {
             y: y_coordinate,
+            width: description_area.width + 1,
             ..description_area
         },
     );
+
+    frame.render_widget(Paragraph::new(" O: Open in Browser ").alignment(Alignment::Right), Rect {
+        y: popup_area.y + popup_area.height - 1,
+        height: 2,
+        ..description_area
+    })
 }
 
 fn render_list(app: &mut App, frame: &mut Frame, area: Rect) {

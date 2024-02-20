@@ -1,10 +1,6 @@
-use crate::{
-    app::{App, AppResult, AppState},
-    feed::Feed,
-};
+use crate::app::{App, AppResult, AppState};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use ratatui_image::picker::{Picker, ProtocolType};
-use tokio::task::JoinHandle;
+
 
 // Handles the key events and updates the state of [`App`].
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
@@ -38,56 +34,8 @@ fn list_state(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         KeyCode::Esc => app.quit(),
 
         KeyCode::Char(' ') => {
-            app.current_feed_image = None;
             let selected = app.list_state.selected().unwrap_or_default();
             let selected_feed = app.feeds.get(selected).unwrap();
-            let tx = app.image_sender.clone();
-
-            let _handle: Option<JoinHandle<()>> = match selected_feed {
-                Feed::Item(item) => match item.extensions().get("media") {
-                    Some(media) => match media.get("content") {
-                        Some(content) => {
-                            let mut counter = 0;
-                            loop {
-                                let ext = &content[counter];
-                                if ext.attrs().contains_key("url") {
-                                    let image_url = ext.attrs().get("url").unwrap().to_string();
-
-                                    if image_url.is_empty() {
-                                        break None;
-                                    }
-
-                                    if app.cached_images.contains_key(&image_url) {
-                                        app.current_feed_image =
-                                            app.cached_images.get(&image_url).cloned();
-                                        break None;
-                                    }
-
-                                    break Some(tokio::spawn(async move {
-                                        let image_bytes = reqwest::get(&image_url)
-                                            .await
-                                            .unwrap()
-                                            .bytes()
-                                            .await
-                                            .unwrap();
-
-                                        let b = image::load_from_memory(&image_bytes).unwrap();
-                                        let mut picker = Picker::new((5, 10));
-                                        picker.protocol_type = ProtocolType::Halfblocks;
-
-                                        let image = picker.new_resize_protocol(b);
-                                        tx.send((image_url, image)).await.unwrap();
-                                    }));
-                                }
-                                counter += 1;
-                            }
-                        }
-                        _ => None,
-                    },
-                    _ => None,
-                },
-                _ => None,
-            };
 
             app.app_state = AppState::Popup(selected_feed.clone());
         }

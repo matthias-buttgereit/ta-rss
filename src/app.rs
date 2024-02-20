@@ -1,8 +1,8 @@
 use crate::feed::Feed;
 use ratatui::widgets::ListState;
-use ratatui_image::protocol::StatefulProtocol;
+use ratatui_image::{picker::{Picker, ProtocolType}, protocol::StatefulProtocol};
 use rustc_hash::FxHashMap;
-use std::error;
+use std::{env, error, fs};
 use tokio::sync::mpsc;
 
 // Application result type.
@@ -66,8 +66,14 @@ impl App {
         }
 
         if let Ok((url, image)) = self.image_receiver.try_recv() {
-            self.cached_images.insert(url, image.clone());
-            self.current_feed_image = Some(image);
+            if let AppState::Popup(feed) = &self.app_state {
+                if let Some(feed_url) = feed.get_image_url() {
+                    if feed_url == url {
+                        self.current_feed_image = Some(image.clone());
+                    }
+                }
+            }
+            self.cached_images.insert(url, image);
         }
     }
 
@@ -83,7 +89,7 @@ impl App {
             self.list_state
                 .select(Some((index + self.feeds.len() - 1) % self.feeds.len()));
             if let AppState::Popup(_) = &self.app_state {
-                self.update_selected_feed();
+                self.update_displayed_feed();
             }
         }
     }
@@ -92,7 +98,7 @@ impl App {
         if let Some(index) = self.list_state.selected() {
             self.list_state.select(Some((index + 1) % self.feeds.len()));
             if let AppState::Popup(_) = &self.app_state {
-                self.update_selected_feed();
+                self.update_displayed_feed();
             }
         }
     }
@@ -103,7 +109,7 @@ impl App {
     }
 
     fn load() -> Vec<String> {
-        match std::fs::read_to_string("feeds.json") {
+        match std::fs::read_to_string("./feeds.json") {
             Ok(valid_content) => serde_json::from_str(&valid_content).unwrap(),
             Err(_) => Vec::new(),
         }
@@ -122,13 +128,37 @@ impl App {
         }
     }
 
-    fn update_selected_feed(&mut self) {
+    fn update_displayed_feed(&mut self) {
+        self.current_feed_image = None;
         if let Some(selected) = self.list_state.selected() {
-            self.app_state = AppState::Popup(self.feeds.get(selected).unwrap().clone());
+            let displayed_feed = self.feeds.get(selected).unwrap();
+            self.app_state = AppState::Popup(displayed_feed.clone());
+
+            if let Some(feed_image_url) = displayed_feed.get_image_url() {
+                if self.cached_images.contains_key(&feed_image_url) {
+                    self.current_feed_image = Some(self.cached_images.get(&feed_image_url).unwrap().clone());
+                } else {
+                    let tx = self.image_sender.clone();
+                    tokio::spawn(async move {
+                        let image_bytes = reqwest::get(&feed_image_url)
+                            .await
+                            .unwrap()
+                            .bytes()
+                            .await
+                            .unwrap();
+
+                        let b = image::load_from_memory(&image_bytes).unwrap();
+                        let mut picker = Picker::new((5, 10));
+                        picker.protocol_type = ProtocolType::Halfblocks;
+
+                        let image = picker.new_resize_protocol(b);
+                        tx.send((feed_image_url, image)).await.unwrap();
+                    });
+
+                }
+            }
         }
     }
-
-    pub fn display_feed(&mut self, feed: &Feed) {}
 }
 
 pub struct Popup {
