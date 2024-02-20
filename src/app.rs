@@ -109,7 +109,12 @@ impl App {
     }
 
     fn load() -> Vec<String> {
-        match std::fs::read_to_string("./feeds.json") {
+        let exe_path = env::current_exe().unwrap();
+        let reading_file_path = exe_path
+        .parent()
+        .unwrap()
+        .join("feeds.json");
+        match std::fs::read_to_string(reading_file_path) {
             Ok(valid_content) => serde_json::from_str(&valid_content).unwrap(),
             Err(_) => Vec::new(),
         }
