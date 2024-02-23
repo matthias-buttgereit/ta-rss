@@ -1,7 +1,6 @@
 use crate::app::{App, AppResult, AppState};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-
 // Handles the key events and updates the state of [`App`].
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     global_key_events(key_event, app)?;
@@ -34,10 +33,10 @@ fn list_state(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         KeyCode::Esc => app.quit(),
 
         KeyCode::Char(' ') => {
-            let selected = app.list_state.selected().unwrap_or_default();
-            let selected_feed = app.feeds.get(selected).unwrap();
-
-            app.app_state = AppState::Popup(selected_feed.clone());
+            if let Some(selected) = app.list_state.selected() {
+                let selected_feed = app.feeds.get(selected).unwrap();
+                app.app_state = AppState::Popup(selected_feed.clone());
+            }
         }
         _ => {}
     }

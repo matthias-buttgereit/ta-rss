@@ -1,6 +1,9 @@
 use crate::feed::Feed;
 use ratatui::widgets::ListState;
-use ratatui_image::{picker::{Picker, ProtocolType}, protocol::StatefulProtocol};
+use ratatui_image::{
+    picker::{Picker, ProtocolType},
+    protocol::StatefulProtocol,
+};
 use rustc_hash::FxHashMap;
 use std::{env, error, fs};
 use tokio::sync::mpsc;
@@ -110,10 +113,7 @@ impl App {
 
     fn load() -> Vec<String> {
         let exe_path = env::current_exe().unwrap();
-        let reading_file_path = exe_path
-        .parent()
-        .unwrap()
-        .join("feeds.json");
+        let reading_file_path = exe_path.parent().unwrap().join("feeds.json");
         match std::fs::read_to_string(reading_file_path) {
             Ok(valid_content) => serde_json::from_str(&valid_content).unwrap(),
             Err(_) => Vec::new(),
@@ -122,10 +122,7 @@ impl App {
 
     fn save(&self) {
         let exe_path = env::current_exe().unwrap();
-        let output_file_path = exe_path
-        .parent()
-        .unwrap()
-        .join("feeds.json");
+        let output_file_path = exe_path.parent().unwrap().join("feeds.json");
         let content = serde_json::to_string(&self.feed_urls).unwrap();
         match fs::write(output_file_path, content) {
             Ok(_) => println!("File written successfully"),
@@ -141,7 +138,8 @@ impl App {
 
             if let Some(feed_image_url) = displayed_feed.get_image_url() {
                 if self.cached_images.contains_key(&feed_image_url) {
-                    self.current_feed_image = Some(self.cached_images.get(&feed_image_url).unwrap().clone());
+                    self.current_feed_image =
+                        Some(self.cached_images.get(&feed_image_url).unwrap().clone());
                 } else {
                     let tx = self.image_sender.clone();
                     tokio::spawn(async move {
@@ -159,7 +157,6 @@ impl App {
                         let image = picker.new_resize_protocol(b);
                         tx.send((feed_image_url, image)).await.unwrap();
                     });
-
                 }
             }
         }
