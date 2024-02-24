@@ -1,4 +1,4 @@
-use crate::feed::Feed;
+use crate::feed::{check_url, Feed};
 use ratatui::widgets::ListState;
 use ratatui_image::{
     picker::{Picker, ProtocolType},
@@ -106,9 +106,15 @@ impl App {
         }
     }
 
-    pub async fn add_feed(&mut self, url: &str) {
+    pub async fn add_feed(&mut self, url: &str) -> anyhow::Result<String> {
+        let title = check_url(url)?;
+
         self.feed_urls.push(url.to_string());
-        self.save();
+        if let Err(a) = self.save() {
+            return Err(anyhow::Error::msg(a.to_string()));
+        }
+
+        Ok(title)
     }
 
     fn load() -> Vec<String> {
@@ -120,14 +126,11 @@ impl App {
         }
     }
 
-    fn save(&self) {
+    fn save(&self) -> std::io::Result<()> {
         let exe_path = env::current_exe().unwrap();
         let output_file_path = exe_path.parent().unwrap().join("feeds.json");
         let content = serde_json::to_string(&self.feed_urls).unwrap();
-        match fs::write(output_file_path, content) {
-            Ok(_) => println!("File written successfully"),
-            Err(err) => eprintln!("Error while writing to the file: {}", err),
-        }
+        fs::write(output_file_path, content)
     }
 
     fn update_displayed_feed(&mut self) {

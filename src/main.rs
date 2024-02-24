@@ -14,8 +14,10 @@ async fn main() -> AppResult<()> {
 
     // If the add argument is provided, add the feed and print a message
     if !args.add.is_empty() {
-        app.add_feed(&args.add).await;
-        println!("Added feed: {}", args.add);
+        match app.add_feed(&args.add).await {
+            Ok(title) => println!("Added feed: {}", title),
+            Err(e) => eprintln!("Failed to add feed: {}", e),
+        }
     } else {
         // When no extra arguments are provided, start the TUI
         start_tui(app).await?;

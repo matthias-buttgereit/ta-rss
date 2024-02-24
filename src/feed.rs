@@ -109,10 +109,8 @@ impl Feed {
                     }
                 }
                 None
-            },
-            Feed::Entry(_entry) => {
-                None
             }
+            Feed::Entry(_entry) => None,
         }
     }
 }
@@ -135,4 +133,19 @@ impl Ord for Feed {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         other.pub_date().cmp(&self.pub_date())
     }
+}
+
+pub fn check_url(url: &str) -> anyhow::Result<String> {
+    if let Ok(response) = reqwest::blocking::get(url) {
+        let result = response.bytes()?;
+        if let Ok(channel) = rss::Channel::read_from(&result[..]) {
+            return Ok(channel.title);
+        }
+        if let Ok(feed) = atom_syndication::Feed::read_from(&result[..]) {
+            return Ok(feed.title.value);
+        }
+    }
+
+    let err = anyhow::Error::msg("Invalid URL");
+    Err(err)
 }
