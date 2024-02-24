@@ -1,3 +1,7 @@
+use crate::{
+    app::{App, AppState},
+    feed::Feed,
+};
 use ratatui::{
     layout::{Alignment, Rect},
     style::{Color, Modifier, Style},
@@ -6,11 +10,6 @@ use ratatui::{
     Frame,
 };
 use ratatui_image::StatefulImage;
-
-use crate::{
-    app::{App, AppState},
-    feed::Feed,
-};
 
 pub fn render(app: &mut App, frame: &mut Frame) {
     let window_area = frame.size();
@@ -22,6 +21,9 @@ pub fn render(app: &mut App, frame: &mut Frame) {
             ..window_area
         },
     );
+    if app.feeds.is_empty() {
+        render_instructions(frame, window_area);
+    }
 
     render_keybindings(
         app,
@@ -42,6 +44,15 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         };
         render_popup(app, frame, popup_area, feed);
     }
+}
+
+fn render_instructions(frame: &mut Frame<'_>, window_area: Rect) {
+    let instructions = Paragraph::new("Add feeds by running `ta-rss add <url>`")
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
+
+    let y = (window_area.height - 1) / 2;
+    frame.render_widget(instructions, Rect { y, ..window_area });
 }
 
 fn render_keybindings(_app: &mut App, frame: &mut Frame, area: Rect) {
@@ -119,11 +130,14 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect, feed: &Feed) {
         },
     );
 
-    frame.render_widget(Paragraph::new(" O: Open in Browser ").alignment(Alignment::Right), Rect {
-        y: popup_area.y + popup_area.height - 1,
-        height: 2,
-        ..description_area
-    })
+    frame.render_widget(
+        Paragraph::new(" O: Open in Browser ").alignment(Alignment::Right),
+        Rect {
+            y: popup_area.y + popup_area.height - 1,
+            height: 2,
+            ..description_area
+        },
+    )
 }
 
 fn render_list(app: &mut App, frame: &mut Frame, area: Rect) {
