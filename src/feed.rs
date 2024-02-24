@@ -65,7 +65,8 @@ impl Feed {
         }
     }
 
-    pub fn fetch_and_parse_feeds(url: String, tx: &mpsc::Sender<Feed>) {
+    pub fn fetch_and_parse_feeds(url: &str, tx: &mpsc::Sender<Feed>) {
+        let url = url.to_string();
         let client = Client::new();
 
         let tx = tx.clone();

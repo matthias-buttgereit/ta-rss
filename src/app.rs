@@ -39,7 +39,7 @@ impl App {
         let (img_tx, img_rx) = mpsc::channel::<ImageData>(1);
         let feed_urls = Self::load();
 
-        for url in feed_urls.clone() {
+        for url in feed_urls.iter() {
             Feed::fetch_and_parse_feeds(url, &tx);
         }
 
@@ -121,7 +121,10 @@ impl App {
         let exe_path = env::current_exe().unwrap();
         let reading_file_path = exe_path.parent().unwrap().join("feeds.json");
         match std::fs::read_to_string(reading_file_path) {
-            Ok(valid_content) => serde_json::from_str(&valid_content).unwrap(),
+            Ok(valid_content) => match serde_json::from_str(&valid_content) {
+                Ok(feed_urls) => feed_urls,
+                Err(_) => Vec::new(),
+            },
             Err(_) => Vec::new(),
         }
     }
@@ -166,9 +169,10 @@ impl App {
     }
 }
 
-pub struct Popup {
-    pub title: String,
-    pub content: String,
+pub struct Popup<'a> {
+    pub title: &'a str,
+    pub content: &'a str,
+    pub timestamp: Option<String>,
     pub image: Option<Box<dyn StatefulProtocol>>,
-    pub source: Option<String>,
+    pub source: Option<&'a str>,
 }
