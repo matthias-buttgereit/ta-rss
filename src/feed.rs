@@ -136,9 +136,9 @@ impl Ord for Feed {
     }
 }
 
-pub fn check_url(url: &str) -> anyhow::Result<String> {
-    if let Ok(response) = reqwest::blocking::get(url) {
-        let result = response.bytes()?;
+pub async fn check_url(url: &str) -> anyhow::Result<String> {
+    if let Ok(response) = reqwest::get(url).await {
+        let result = response.bytes().await?;
         if let Ok(channel) = rss::Channel::read_from(&result[..]) {
             return Ok(channel.title);
         }

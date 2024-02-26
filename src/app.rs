@@ -107,7 +107,7 @@ impl App {
     }
 
     pub async fn add_feed(&mut self, url: &str) -> anyhow::Result<String> {
-        let title = check_url(url)?;
+        let title = check_url(url).await?;
 
         self.feed_urls.push(url.to_string());
         if let Err(a) = self.save() {
@@ -161,7 +161,7 @@ impl App {
                         picker.protocol_type = ProtocolType::Halfblocks;
 
                         let image = picker.new_resize_protocol(b);
-                        tx.send((feed_image_url, image)).await.unwrap();
+                        let _result = tx.send((feed_image_url, image)).await;
                     });
                 }
             }
