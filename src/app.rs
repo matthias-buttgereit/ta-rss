@@ -1,9 +1,6 @@
 use crate::feed::{check_url, Feed};
 use ratatui::widgets::ListState;
-use ratatui_image::{
-    picker::{Picker, ProtocolType},
-    protocol::StatefulProtocol,
-};
+use ratatui_image::{picker::Picker, protocol::StatefulProtocol};
 use rustc_hash::FxHashMap;
 use std::{env, error, fs};
 use tokio::sync::mpsc;
@@ -158,7 +155,7 @@ impl App {
 
                         let b = image::load_from_memory(&image_bytes).unwrap();
                         let mut picker = Picker::new((5, 10));
-                        picker.protocol_type = ProtocolType::Halfblocks;
+                        picker.protocol_type = picker.guess_protocol();
 
                         let image = picker.new_resize_protocol(b);
                         let _result = tx.send((feed_image_url, image)).await;
