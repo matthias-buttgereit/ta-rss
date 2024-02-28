@@ -154,7 +154,7 @@ impl App {
                             .unwrap();
 
                         let b = image::load_from_memory(&image_bytes).unwrap();
-                        let mut picker = Picker::new((5, 10));
+                        let mut picker = Picker::new((8, 15));
                         picker.protocol_type = picker.guess_protocol();
 
                         let image = picker.new_resize_protocol(b);
