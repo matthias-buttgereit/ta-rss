@@ -1,4 +1,7 @@
 # Ta-RSS
+![Screenshot 2024-03-06 151150](https://github.com/matthias-buttgereit/ta-rss/assets/65292669/0668bc50-c8ab-4c0c-b472-8f5e39e66004)
+
+Terminal App for reading RSS Feeds
 
 ## Installation
 First make sure to have Rust installed: https://www.rust-lang.org/tools/install
