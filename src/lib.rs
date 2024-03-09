@@ -19,7 +19,7 @@ pub async fn start_tui(mut app: App) -> AppResult<()> {
     // Initialize the terminal user interface.
     let backend = CrosstermBackend::new(io::stdout());
     let terminal = Terminal::new(backend)?;
-    let events = EventHandler::new(250);
+    let events = EventHandler::new(100);
     let mut tui = Tui::new(terminal, events);
     tui.init()?;
 
