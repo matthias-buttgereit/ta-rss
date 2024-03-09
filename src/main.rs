@@ -1,26 +1,28 @@
 use clap::Parser;
 use ta_rss::app::{App, AppResult};
-use ta_rss::start_tui;
-use ta_rss::Arguments;
+use ta_rss::Commands;
+use ta_rss::{start_tui, Cli};
 
 // Asynchronous main function
 #[tokio::main]
 async fn main() -> AppResult<()> {
+    // Parse cli commands
+    let cli = Cli::parse();
+
     // Create a new instance of the application
     let mut app = App::new().await;
 
-    // Parse command line arguments
-    let args = Arguments::parse();
-
-    // If the add argument is provided, add the feed and print a message
-    if !args.add.is_empty() {
-        match app.add_feed(&args.add).await {
+    // Match on cli commands
+    // If no command is given, start the user interface
+    match cli.command {
+        Some(Commands::Add { url }) => match app.add_feed(&url).await {
             Ok(title) => println!("Added feed: {}", title),
             Err(e) => eprintln!("Failed to add feed: {}", e),
+        },
+        None => {
+            start_tui(app).await?;
         }
-    } else {
-        // When no extra arguments are provided, start the TUI
-        start_tui(app).await?;
     }
+
     Ok(())
 }

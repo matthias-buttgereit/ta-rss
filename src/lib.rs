@@ -1,5 +1,6 @@
 use app::{App, AppResult};
 use clap::Parser;
+use clap::Subcommand;
 use event::{Event, EventHandler};
 use handler::{_handle_paste_event, handle_key_events};
 use ratatui::{backend::CrosstermBackend, Terminal};
@@ -41,10 +42,16 @@ pub async fn start_tui(mut app: App) -> AppResult<()> {
     Ok(())
 }
 
-// Struct for parsing command-line arguments.
-#[derive(Parser, Debug)]
-pub struct Arguments {
-    // URL of the feed to add
-    #[arg(short, long, default_value_t=String::from(""))]
-    pub add: String,
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+#[command(propagate_version = true)]
+pub struct Cli {
+    #[command(subcommand)]
+    pub command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+pub enum Commands {
+    /// Add an URL of a feed
+    Add { url: String },
 }
