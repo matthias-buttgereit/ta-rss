@@ -164,6 +164,20 @@ impl App {
             }
         }
     }
+
+    pub fn print_feeds(&self) {
+        if self.feed_urls.is_empty() {
+            println!("No feeds found.");
+        } else {
+            for url in &self.feed_urls {
+                println!("{}", url);
+            }
+        }
+    }
+
+    pub fn remove_feed(&mut self, _url: &str) -> anyhow::Result<String> {
+        todo!()
+    }
 }
 
 pub struct Popup<'a> {

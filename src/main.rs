@@ -19,6 +19,11 @@ async fn main() -> AppResult<()> {
             Ok(title) => println!("Added feed: {}", title),
             Err(e) => eprintln!("Failed to add feed: {}", e),
         },
+        Some(Commands::Remove { url }) => match app.remove_feed(&url) {
+            Ok(title) => println!("Removed feed: {}", title),
+            Err(e) => eprintln!("Failed to remove feed: {}", e),
+        },
+        Some(Commands::List) => app.print_feeds(),
         None => {
             start_tui(app).await?;
         }

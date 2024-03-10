@@ -54,4 +54,8 @@ pub struct Cli {
 pub enum Commands {
     /// Add an URL of a feed
     Add { url: String },
+    /// Remove URL
+    Remove { url: String },
+    /// List feeds
+    List,
 }
