@@ -72,8 +72,13 @@ impl Feed {
         let tx = tx.clone();
         let client = client.clone();
         tokio::spawn(async move {
-            let result = client.get(url).send().await.unwrap().bytes().await.unwrap();
-            if let Ok(channel) = rss::Channel::read_from(&result[..]) {
+            let Ok(response) = client.get(url).send().await else {
+                return;
+            };
+            let Ok(result_as_bytes) = response.bytes().await else {
+                return;
+            };
+            if let Ok(channel) = rss::Channel::read_from(&result_as_bytes[..]) {
                 for mut item in channel.items {
                     item.set_source(rss::Source {
                         url: channel.link.to_string(),
@@ -81,7 +86,7 @@ impl Feed {
                     });
                     tx.send(Feed::Item(item)).await.unwrap_or_default();
                 }
-            } else if let Ok(feed) = atom_syndication::Feed::read_from(&result[..]) {
+            } else if let Ok(feed) = atom_syndication::Feed::read_from(&result_as_bytes[..]) {
                 for mut entry in feed.entries {
                     let title = Text {
                         value: feed.title.value.to_string(),
