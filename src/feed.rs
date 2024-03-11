@@ -1,157 +1,115 @@
-use atom_syndication::Text;
-use chrono::Datelike;
-use reqwest::Client;
+use std::rc::Rc;
+
+use ratatui_image::protocol::StatefulProtocol;
 use tokio::sync::mpsc;
 
-#[derive(Clone, Debug)]
-pub enum Feed {
-    Item(rss::Item),
-    Entry(atom_syndication::Entry),
+pub struct Feed<'a> {
+    pub url: String,
+    pub name: String,
+    pub entries: Vec<Entry<'a>>,
+    pub pub_date: Option<chrono::DateTime<::chrono::FixedOffset>>,
 }
 
-impl Feed {
-    fn pub_date(&self) -> Option<atom_syndication::FixedDateTime> {
-        match self {
-            Feed::Item(item) => Some(
-                chrono::DateTime::parse_from_rfc2822(item.pub_date().unwrap_or_default())
-                    .unwrap_or_default(),
-            ),
-            Feed::Entry(entry) => Some(*entry.updated()),
-        }
+pub struct Entry<'a> {
+    pub title: String,
+    pub url: String,
+    pub description: String,
+    pub pub_date: String,
+    pub image: Option<Rc<dyn StatefulProtocol>>,
+    pub source_name: &'a str,
+}
+
+impl<'a> Feed<'a> {
+    pub fn pub_date(&self) -> Option<chrono::DateTime<::chrono::FixedOffset>> {
+        todo!();
     }
 
-    pub fn source_name(&self) -> String {
-        match self {
-            Feed::Item(item) => match item.source() {
-                Some(source) => source.title().unwrap_or(source.url()).to_string(),
-                None => "a".to_string(),
-            },
-            Feed::Entry(entry) => match entry.source() {
-                Some(source) => source.title().value.to_string(),
-                None => "b".to_string(),
-            },
-        }
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
-    pub fn title(&self) -> String {
-        match self {
-            Feed::Item(item) => item.title().unwrap().to_string(),
-            Feed::Entry(entry) => entry.title().to_string(),
-        }
+    pub fn pub_date_string(&self) -> &str {
+        todo!();
     }
 
-    pub fn description(&self) -> String {
-        match self {
-            Feed::Item(item) => item.description().unwrap_or(" ").to_string(),
-            Feed::Entry(entry) => entry.summary().unwrap_or(&Text::plain(" ")).to_string(),
-        }
+    pub fn url(&self) -> &str {
+        &self.url
     }
 
-    pub fn pub_date_string(&self) -> String {
-        let now = chrono::offset::Local::now();
-        let time = self.pub_date().unwrap_or_default();
-
-        if time.year() == now.year() && time.month() == now.month() && time.day() == now.day() {
-            time.format("%H:%M").to_string()
-        } else {
-            time.format("%y-%m-%d %H:%M").to_string()
-        }
-    }
-
-    pub fn url(&self) -> String {
-        match self {
-            Feed::Item(item) => item.link().unwrap().to_string(),
-            Feed::Entry(entry) => entry.id().to_string(),
-        }
-    }
-
-    pub fn fetch_and_parse_feeds(url: &str, tx: &mpsc::Sender<Feed>) {
-        let url = url.to_string();
-        let client = Client::new();
-
-        let tx = tx.clone();
-        let client = client.clone();
-        tokio::spawn(async move {
-            let Ok(response) = client.get(url).send().await else {
-                return;
-            };
-            let Ok(result_as_bytes) = response.bytes().await else {
-                return;
-            };
-            if let Ok(channel) = rss::Channel::read_from(&result_as_bytes[..]) {
-                for mut item in channel.items {
-                    item.set_source(rss::Source {
-                        url: channel.link.to_string(),
-                        title: Some(channel.title.to_string()),
-                    });
-                    tx.send(Feed::Item(item)).await.unwrap_or_default();
-                }
-            } else if let Ok(feed) = atom_syndication::Feed::read_from(&result_as_bytes[..]) {
-                for mut entry in feed.entries {
-                    let title = Text {
-                        value: feed.title.value.to_string(),
-                        ..Default::default()
-                    };
-                    entry.set_source(Some(atom_syndication::Source {
-                        title,
-                        ..Default::default()
-                    }));
-                    tx.send(Feed::Entry(entry)).await.unwrap_or_default();
-                }
-            }
-        });
-    }
-
-    pub fn get_image_url(&self) -> Option<String> {
-        match self {
-            Feed::Item(item) => {
-                if let Some(media) = item.extensions().get("media") {
-                    if let Some(content) = media.get("content") {
-                        for ext in content {
-                            if ext.attrs().contains_key("url") {
-                                return Some(ext.attrs().get("url").unwrap().to_string());
-                            }
-                        }
-                    }
-                }
-                None
-            }
-            Feed::Entry(_entry) => None,
-        }
+    pub fn fetch_and_parse_feeds(_url: &str, _tx: &mpsc::Sender<Feed>) {
+        todo!();
     }
 }
 
-impl PartialOrd for Feed {
+impl<'a> Entry<'a> {
+    pub fn new(
+        _title: String,
+        _description: String,
+        _pub_date: String,
+        _source_name: &'a str,
+    ) -> Self {
+        todo!();
+    }
+
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+
+    pub fn description(&self) -> &str {
+        &self.description
+    }
+
+    pub fn pub_date_string(&self) -> &str {
+        &self.pub_date
+    }
+
+    pub fn image(&self) -> Option<Rc<dyn StatefulProtocol>> {
+        match &self.image {
+            Some(image_ref) => Some(image_ref.clone()),
+            None => None,
+        }
+    }
+
+    pub fn source_name(&self) -> &str {
+        self.source_name
+    }
+
+    pub fn url(&self) -> &str {
+        &self.url
+    }
+}
+
+impl<'a> PartialOrd for Entry<'a> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl PartialEq for Feed {
+impl<'a> PartialEq for Entry<'a> {
     fn eq(&self, other: &Self) -> bool {
-        self.pub_date() == other.pub_date() && self.source_name() == other.source_name()
+        self.pub_date == other.pub_date && self.title == other.title
     }
 }
 
-impl Eq for Feed {}
+impl<'a> Eq for Entry<'a> {}
 
-impl Ord for Feed {
+impl<'a> Ord for Entry<'a> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        other.pub_date().cmp(&self.pub_date())
+        other.pub_date.cmp(&self.pub_date)
     }
 }
 
 pub async fn check_url(url: &str) -> anyhow::Result<String> {
-    if let Ok(response) = reqwest::get(url).await {
-        let result = response.bytes().await?;
-        if let Ok(channel) = rss::Channel::read_from(&result[..]) {
-            return Ok(channel.title);
-        }
-        if let Ok(feed) = atom_syndication::Feed::read_from(&result[..]) {
-            return Ok(feed.title.value);
-        }
+    let response = reqwest::get(url).await?;
+    let result = response.bytes().await?;
+
+    if let Ok(channel) = rss::Channel::read_from(&result[..]) {
+        return Ok(channel.title);
+    }
+    if let Ok(feed) = atom_syndication::Feed::read_from(&result[..]) {
+        return Ok(feed.title.value);
     }
 
-    let err = anyhow::Error::msg("Invalid URL");
+    let err = anyhow::Error::msg("Unable to parse feed.");
     Err(err)
 }

@@ -15,7 +15,7 @@ pub mod tui;
 pub mod ui;
 
 // Asynchronously start the terminal user interface with the given App.
-pub async fn start_tui(mut app: App) -> AppResult<()> {
+pub async fn start_tui(mut app: App<'_>) -> AppResult<()> {
     // Initialize the terminal user interface.
     let backend = CrosstermBackend::new(io::stdout());
     let terminal = Terminal::new(backend)?;

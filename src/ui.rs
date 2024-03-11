@@ -1,7 +1,4 @@
-use crate::{
-    app::{App, AppState},
-    feed::Feed,
-};
+use crate::{app::App, feed::Entry};
 use ratatui::{
     layout::{Alignment, Rect},
     style::{Color, Modifier, Style},
@@ -35,14 +32,14 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         },
     );
 
-    if let AppState::Popup(feed) = &app.app_state {
+    if let Some(entry) = app.popup {
         let popup_area = Rect {
             x: (window_area.width / 2),
             y: window_area.y + 1,
             width: (window_area.width / 2),
             height: window_area.height - 3,
         };
-        render_popup(app, frame, popup_area, feed);
+        render_popup(app, frame, popup_area, entry);
     }
 }
 
@@ -60,18 +57,18 @@ fn render_keybindings(_app: &mut App, frame: &mut Frame, area: Rect) {
     frame.render_widget(Line::raw(keybindings), area);
 }
 
-fn render_popup(app: &App, frame: &mut Frame, area: Rect, feed: &Feed) {
+fn render_popup(_app: &App, frame: &mut Frame, area: Rect, entry: &Entry) {
     // Extract and convert relevant data
-    let date = feed.pub_date_string();
+    let date = entry.pub_date_string();
     let source = {
-        let mut source = feed.source_name();
+        let mut source = entry.source_name().to_owned();
         let source_len = area.width as usize - (date.len() + 4);
         source.truncate(source_len);
         source
     };
-    let title = Paragraph::new(feed.title()).wrap(Wrap { trim: true });
-    let description = Paragraph::new(feed.description()).wrap(Wrap { trim: true });
-    let image = &app.current_feed_image;
+    let title = Paragraph::new(entry.title()).wrap(Wrap { trim: true });
+    let description = Paragraph::new(entry.description()).wrap(Wrap { trim: true });
+    let image = &entry.image;
 
     // Set-up layout
     let title_area = Rect {
@@ -113,9 +110,9 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect, feed: &Feed) {
     // Render feed title
     frame.render_widget(title, title_area);
     if let Some(image) = image {
-        let sf_image = StatefulImage::new(None);
-        let image = &mut image.clone();
-        frame.render_stateful_widget(sf_image, image_area, image);
+        let _sf_image = StatefulImage::new(None);
+        let _image = &mut image.clone();
+        //frame.render_stateful_widget(sf_image, image_area, image);
 
         y_coordinate = image_area.y + image_area.height + 1;
     }
@@ -147,7 +144,7 @@ fn render_list(app: &mut App, frame: &mut Frame, area: Rect) {
         .border_type(BorderType::Rounded)
         .style(Style::default());
 
-    let feed_list: List = List::new(app.feeds.iter().map(|feed| feed.title().clone()))
+    let feed_list: List = List::new(app.feeds.iter().map(|feed| feed.name()))
         .highlight_style(
             Style::default()
                 .add_modifier(Modifier::BOLD)
