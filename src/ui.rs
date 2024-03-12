@@ -1,4 +1,4 @@
-use crate::{app::App, feed::Entry};
+use crate::app::App;
 use ratatui::{
     layout::{Alignment, Rect},
     style::{Color, Modifier, Style},
@@ -10,14 +10,12 @@ use ratatui_image::StatefulImage;
 
 pub fn render(app: &mut App, frame: &mut Frame) {
     let window_area = frame.size();
-    render_list(
-        app,
-        frame,
-        Rect {
-            height: window_area.height - 1,
-            ..window_area
-        },
-    );
+    let main_area = Rect {
+        height: window_area.height - 1,
+        ..window_area
+    };
+    render_list(app, frame, main_area);
+
     if app.feeds.is_empty() {
         render_instructions(frame, window_area);
     }
@@ -32,14 +30,14 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         },
     );
 
-    if let Some(entry) = app.popup {
+    if let Some(_) = app.popup {
         let popup_area = Rect {
             x: (window_area.width / 2),
             y: window_area.y + 1,
             width: (window_area.width / 2),
             height: window_area.height - 3,
         };
-        render_popup(app, frame, popup_area, entry);
+        render_popup(app, frame, popup_area);
     }
 }
 
@@ -57,7 +55,11 @@ fn render_keybindings(_app: &mut App, frame: &mut Frame, area: Rect) {
     frame.render_widget(Line::raw(keybindings), area);
 }
 
-fn render_popup(_app: &App, frame: &mut Frame, area: Rect, entry: &Entry) {
+fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
+    let Some(entry) = app.popup else {
+        return
+    };
+
     // Extract and convert relevant data
     let date = entry.pub_date_string();
     let source = {
@@ -68,7 +70,7 @@ fn render_popup(_app: &App, frame: &mut Frame, area: Rect, entry: &Entry) {
     };
     let title = Paragraph::new(entry.title()).wrap(Wrap { trim: true });
     let description = Paragraph::new(entry.description()).wrap(Wrap { trim: true });
-    let image = &entry.image;
+    let image: Option<String> = None; //&entry.image;
 
     // Set-up layout
     let title_area = Rect {

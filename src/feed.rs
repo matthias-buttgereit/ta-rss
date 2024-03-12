@@ -1,25 +1,26 @@
 use std::rc::Rc;
 
 use ratatui_image::protocol::StatefulProtocol;
+use reqwest::Client;
 use tokio::sync::mpsc;
 
-pub struct Feed<'a> {
+pub struct Feed {
     pub url: String,
     pub name: String,
-    pub entries: Vec<Entry<'a>>,
+    pub entries: Vec<Entry>,
     pub pub_date: Option<chrono::DateTime<::chrono::FixedOffset>>,
 }
 
-pub struct Entry<'a> {
+pub struct Entry {
     pub title: String,
     pub url: String,
     pub description: String,
     pub pub_date: String,
-    pub image: Option<Rc<dyn StatefulProtocol>>,
-    pub source_name: &'a str,
+    pub source_name: String,
+    pub image_url: Option<String>,
 }
 
-impl<'a> Feed<'a> {
+impl Feed {
     pub fn pub_date(&self) -> Option<chrono::DateTime<::chrono::FixedOffset>> {
         todo!();
     }
@@ -36,19 +37,72 @@ impl<'a> Feed<'a> {
         &self.url
     }
 
-    pub fn fetch_and_parse_feeds(_url: &str, _tx: &mpsc::Sender<Feed>) {
-        todo!();
+    pub async fn fetch_and_parse_feeds(urls: &[String], tx: mpsc::Sender<Feed>) {
+        let client = Client::new();
+        for url in urls {
+            let client = client.clone();
+            let url = url.clone();
+            let Ok(parsed_url) = reqwest::Url::parse(&url) else {continue};
+            let tx = tx.clone();
+
+            tokio::spawn(async move {
+                let Ok(response) = client.get(parsed_url).send().await else {return};
+                let Ok(bytes) = response.bytes().await else {return};
+
+                if let Ok(channel) = rss::Channel::read_from(&bytes[..]) {
+                    let pub_date = match channel.pub_date() {
+                        Some(pub_date) => {
+                            if let Ok(date) = chrono::DateTime::parse_from_rfc2822(pub_date) {
+                                Some(date)
+                            } else {
+                                None
+                            }
+                        },
+                        None => None,
+                    };
+
+                    let mut feed = Feed {
+                        url: url.to_owned(),
+                        name: channel.title.clone(),
+                        entries: Vec::new(),
+                        pub_date,
+                    };
+
+                    for item in channel.items {
+                        let entry = Entry {
+                            title: item.title.unwrap_or("No Title".to_string()),
+                            url: item.link.unwrap_or("No URL provided".to_string()),
+                            description: item.description.unwrap_or("No Description".to_string()),
+                            pub_date: item.pub_date.unwrap_or_default(),
+                            source_name: channel.title.clone(),
+                            image_url: None,
+                        };
+
+                        feed.entries.push(entry);
+                    }
+                    tx.send(feed).await.unwrap_or_default();
+                }
+            });
+        }
     }
 }
 
-impl<'a> Entry<'a> {
+impl Entry {
     pub fn new(
-        _title: String,
-        _description: String,
-        _pub_date: String,
-        _source_name: &'a str,
+        title: String,
+        description: String,
+        pub_date: String,
+        source_name: String,
+        image_url: Option<String>,
     ) -> Self {
-        todo!();
+        Self {
+            title,
+            description,
+            pub_date,
+            url: String::new(),
+            image_url,
+            source_name,
+        }
     }
 
     pub fn title(&self) -> &str {
@@ -64,36 +118,37 @@ impl<'a> Entry<'a> {
     }
 
     pub fn image(&self) -> Option<Rc<dyn StatefulProtocol>> {
-        match &self.image {
-            Some(image_ref) => Some(image_ref.clone()),
-            None => None,
-        }
-    }
-
-    pub fn source_name(&self) -> &str {
-        self.source_name
+        todo!();
+        // match &self.image {
+        //     Some(image_ref) => Some(image_ref.clone()),
+        //     None => None,
+        // }
     }
 
     pub fn url(&self) -> &str {
         &self.url
     }
+
+    pub fn source_name(&self) -> &str {
+        &self.source_name
+    }
 }
 
-impl<'a> PartialOrd for Entry<'a> {
+impl PartialOrd for Entry {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<'a> PartialEq for Entry<'a> {
+impl PartialEq for Entry {
     fn eq(&self, other: &Self) -> bool {
         self.pub_date == other.pub_date && self.title == other.title
     }
 }
 
-impl<'a> Eq for Entry<'a> {}
+impl Eq for Entry {}
 
-impl<'a> Ord for Entry<'a> {
+impl Ord for Entry {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         other.pub_date.cmp(&self.pub_date)
     }
