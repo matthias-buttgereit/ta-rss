@@ -1,8 +1,8 @@
 use crate::feed::{check_url, Entry, Feed};
 use ratatui_image::protocol::StatefulProtocol;
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc;
 use std::error;
+use tokio::sync::mpsc;
 
 // Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
