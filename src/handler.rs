@@ -1,8 +1,8 @@
-use crate::app::{App, AppResult};
+use crate::app::App;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 // Handles the key events and updates the state of [`App`].
-pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
+pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> anyhow::Result<()> {
     match key_event.code {
         KeyCode::Char('q') => app.quit(),
         KeyCode::Char('c') | KeyCode::Char('C') => {
@@ -30,6 +30,6 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     Ok(())
 }
 
-pub fn _handle_paste_event(_app: &mut App, _text: String) -> AppResult<()> {
+pub fn _handle_paste_event(_app: &mut App, _text: String) -> anyhow::Result<()> {
     todo!("Paste event not implemented yet. Depends on crossterm feature 'bracketed-paste'.");
 }
