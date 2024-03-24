@@ -13,7 +13,7 @@ clap = { version = "4.4", features = ["derive"] }
 crossterm = { version = "0.27", features = ["event-stream"] }
 futures = "0.3"
 html_parser = "0.7"
-image = "0.24"
+image = "0.25"
 open = "5.0"
 ratatui = "0.26"
 ratatui-image = { version = "0.8", features = ["crossterm"] }
