@@ -29,6 +29,10 @@ impl Feed {
         &self.name
     }
 
+    pub fn entries(&self) -> &Vec<Entry> {
+        &self.entries
+    }
+
     pub fn pub_date_string(&self) -> &str {
         todo!();
     }

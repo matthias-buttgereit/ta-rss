@@ -1,8 +1,8 @@
 use crate::feed::{check_url, Entry, Feed};
 use ratatui_image::protocol::StatefulProtocol;
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc;
 use std::error;
+use tokio::sync::mpsc;
 
 // Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -13,6 +13,7 @@ pub struct App<'a> {
     feed_urls: Vec<String>,
     pub popup: Option<&'a Entry>,
     pub feeds: Vec<Feed>,
+    pub all_entries: Vec<&'a Entry>,
     pub list_state: ratatui::widgets::ListState,
     feed_receiver: mpsc::Receiver<Feed>,
 }
@@ -29,6 +30,7 @@ impl<'a> App<'a> {
             feed_urls: load_config().unwrap_or_default(),
             popup: None,
             feeds: Vec::new(),
+            all_entries: Vec::new(),
             list_state: ratatui::widgets::ListState::default(),
             feed_receiver: rx,
         }
@@ -41,7 +43,14 @@ impl<'a> App<'a> {
     pub fn tick(&mut self) {
         if let Ok(feed) = self.feed_receiver.try_recv() {
             self.feeds.push(feed);
+            self.list_state.select(Some(0));
         }
+
+        let entries = vec![];
+        for feed in &self.feeds {
+            for _entry in feed.entries() {}
+        }
+        self.all_entries = entries;
     }
 
     pub async fn add_feed(&mut self, url: &str) -> anyhow::Result<String> {
@@ -53,15 +62,30 @@ impl<'a> App<'a> {
         Ok(title)
     }
 
-    pub(crate) fn select_previous(&self) {
-        todo!()
+    pub(crate) fn select_previous(&mut self) {
+        if let Some(index) = self.list_state.selected() {
+            self.list_state.select(Some((index-1) % 2))
+        }
     }
 
-    pub(crate) fn select_next(&self) {
-        todo!()
+    pub(crate) fn select_next(&mut self) {
+        if let Some(index) = self.list_state.selected() {
+            self.list_state.select(Some((index+1) % 2))
+        }
     }
 
-    pub fn print_feeds(&self) {}
+    pub fn print_feeds(&self) {
+        if self.feed_urls.is_empty() {
+            println!("No feeds added yet. Add one with 'ta-rss add <url>'");
+            return;
+        }
+
+        let mut output = String::new();
+        for url in &self.feed_urls {
+            output.push_str(&format!("{}\n", url));
+        }
+        print!("{output}");
+    }
 
     pub fn remove_feed(&mut self, _url: &str) -> anyhow::Result<String> {
         Ok("Ok".to_string())
