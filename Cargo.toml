@@ -5,6 +5,10 @@ authors = ["Matthias Buttgereit <matthias.buttgereit@outlook.com>"]
 license = "MIT"
 edition = "2021"
 
+[lints.rust]
+unsafe_code = "forbid"
+unused = "allow" # For exploratory dev.
+
 [dependencies]
 anyhow = "1.0"
 atom_syndication = "0.12"
@@ -13,11 +17,11 @@ clap = { version = "4.4", features = ["derive"] }
 crossterm = { version = "0.27", features = ["event-stream"] }
 futures = "0.3"
 html_parser = "0.7"
-image = "0.24"
+image = "0.25"
 open = "5.0"
 ratatui = "0.26"
-ratatui-image = { version = "0.8", features = ["crossterm"] }
-reqwest = { version = "0.11", features = ["blocking"] }
+ratatui-image = { version = "1", features = ["crossterm"] }
+reqwest = { version = "0.12", features = ["blocking"] }
 rss = { version = "2.0", features = ["atom", "atom_syndication"] }
 rustc-hash = "1.1"
 serde = { version = "1.0", features = ["derive"] }
