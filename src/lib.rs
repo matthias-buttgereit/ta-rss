@@ -1,4 +1,4 @@
-use app::{App, AppResult};
+use app::App;
 use clap::Parser;
 use clap::Subcommand;
 use event::{Event, EventHandler};
@@ -15,7 +15,7 @@ pub mod tui;
 pub mod ui;
 
 // Asynchronously start the terminal user interface with the given App.
-pub async fn start_tui(mut app: App<'_>) -> AppResult<()> {
+pub async fn start_tui(mut app: App<'_>) -> anyhow::Result<()> {
     // Initialize the terminal user interface.
     let backend = CrosstermBackend::new(io::stdout());
     let terminal = Terminal::new(backend)?;

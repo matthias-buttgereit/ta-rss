@@ -1,11 +1,11 @@
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 use ratatui_image::protocol::StatefulProtocol;
 use reqwest::Client;
 use tokio::sync::mpsc;
 
 pub struct Feed {
-    pub url: String,
+    pub url: Arc<String>,
     pub name: String,
     pub entries: Vec<Entry>,
     pub pub_date: Option<chrono::DateTime<::chrono::FixedOffset>>,
@@ -16,7 +16,7 @@ pub struct Entry {
     pub url: String,
     pub description: String,
     pub pub_date: String,
-    pub source_name: String,
+    pub source_name: Arc<String>,
     pub image_url: Option<String>,
 }
 
@@ -46,12 +46,18 @@ impl Feed {
         for url in urls {
             let client = client.clone();
             let url = url.clone();
-            let Ok(parsed_url) = reqwest::Url::parse(&url) else {continue};
+            let Ok(parsed_url) = reqwest::Url::parse(&url) else {
+                continue;
+            };
             let tx = tx.clone();
 
             tokio::spawn(async move {
-                let Ok(response) = client.get(parsed_url).send().await else {return};
-                let Ok(bytes) = response.bytes().await else {return};
+                let Ok(response) = client.get(parsed_url).send().await else {
+                    return;
+                };
+                let Ok(bytes) = response.bytes().await else {
+                    return;
+                };
 
                 if let Ok(channel) = rss::Channel::read_from(&bytes[..]) {
                     let pub_date = match channel.pub_date() {
@@ -61,12 +67,12 @@ impl Feed {
                             } else {
                                 None
                             }
-                        },
+                        }
                         None => None,
                     };
 
                     let mut feed = Feed {
-                        url: url.to_owned(),
+                        url: Arc::new(url),
                         name: channel.title.clone(),
                         entries: Vec::new(),
                         pub_date,
@@ -78,7 +84,7 @@ impl Feed {
                             url: item.link.unwrap_or("No URL provided".to_string()),
                             description: item.description.unwrap_or("No Description".to_string()),
                             pub_date: item.pub_date.unwrap_or_default(),
-                            source_name: channel.title.clone(),
+                            source_name: Arc::clone(&feed.url),
                             image_url: None,
                         };
 
@@ -96,7 +102,7 @@ impl Entry {
         title: String,
         description: String,
         pub_date: String,
-        source_name: String,
+        source_name: Arc<String>,
         image_url: Option<String>,
     ) -> Self {
         Self {

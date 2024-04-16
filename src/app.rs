@@ -5,7 +5,6 @@ use std::error;
 use tokio::sync::mpsc;
 
 // Application result type.
-pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 pub type ImageData = (String, Box<dyn StatefulProtocol>);
 
 pub struct App<'a> {

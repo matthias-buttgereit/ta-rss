@@ -1,11 +1,11 @@
 use clap::Parser;
-use ta_rss::app::{App, AppResult};
+use ta_rss::app::App;
 use ta_rss::Commands;
 use ta_rss::{start_tui, Cli};
 
 // Asynchronous main function
 #[tokio::main]
-async fn main() -> AppResult<()> {
+async fn main() -> anyhow::Result<()> {
     // Parse cli commands
     let cli = Cli::parse();
 
