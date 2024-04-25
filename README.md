@@ -17,9 +17,14 @@ cd ta-rss
 cargo install --root [DIRECTORY] --path .
 ```
 
-To add rss feeds just use the `--add` option
+To add rss feeds just use the `add` subcommand
 ```bash
-ta-rss --add [FEED-URL]
+ta-rss add [FEED-URL]
+```
+
+For a full list of commands use the `--help` argument
+```bash
+ta-rss --help
 ```
 
 ## How To Use
@@ -32,6 +37,4 @@ While the list of feeds is displayed you can navigate the entries with the up an
 `Q`, `Ctrl+C` always quits the app.
 
 `O` opens the current feed in the browser.
-
-## Features
 
