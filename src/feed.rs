@@ -20,6 +20,31 @@ pub struct Entry {
     pub image_url: Option<String>,
 }
 
+pub struct FeedFetcher {
+    sender: mpsc::UnboundedSender<Feed>,
+    receiver: mpsc::UnboundedReceiver<Feed>,
+    handler: tokio::task::JoinHandle<()>,
+}
+
+impl FeedFetcher {
+    pub fn new(url: String) -> Self {
+        let (sender, receiver) = mpsc::unbounded_channel();
+
+        let handler = tokio::spawn(async move {
+            let client = Client::new();
+            if let Ok(parsed_url) = reqwest::Url::parse(&url) {
+                
+            }
+        });
+
+        Self {
+            sender,
+            receiver,
+            handler,
+        }
+    }
+}
+
 impl Feed {
     pub fn pub_date(&self) -> Option<chrono::DateTime<::chrono::FixedOffset>> {
         todo!();

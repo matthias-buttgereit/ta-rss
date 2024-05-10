@@ -56,11 +56,8 @@ fn render_keybindings(_app: &mut App, frame: &mut Frame, area: Rect) {
 }
 
 fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
-    let Some(entry) = app.popup else {
-        return
-    };
+    let Some(entry) = app.popup else { return };
 
-    // Extract and convert relevant data
     let date = entry.pub_date_string();
     let source = {
         let mut source = entry.source_name().to_owned();
@@ -72,7 +69,6 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
     let description = Paragraph::new(entry.description()).wrap(Wrap { trim: true });
     let image: Option<String> = None; //&entry.image;
 
-    // Set-up layout
     let title_area = Rect {
         x: area.x + 2,
         y: area.y + 2,
@@ -86,7 +82,7 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
             x: area.x + 2,
             y: y_coordinate,
             width: area.width - 4,
-            height: (area.width - 4) / 4, // clamp height to not overflow in short terminals
+            height: (area.width - 4) / 4, // TODO clamp height to not overflow in short terminals
         };
     }
     let description_area = Rect {
@@ -102,14 +98,13 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
         ..area
     };
 
-    // Render everything
     let block = Block::bordered()
         .title(source)
         .title(Title::from(date).alignment(Alignment::Right));
-    // Clear the popup window
+
     frame.render_widget(Clear, popup_area);
     frame.render_widget(block, popup_area);
-    // Render feed title
+
     frame.render_widget(title, title_area);
     if let Some(image) = image {
         let _sf_image = StatefulImage::new(None);
@@ -119,7 +114,7 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
         y_coordinate = image_area.y + image_area.height + 1;
     }
 
-    // Render feed description
+
     frame.render_widget(
         description,
         Rect {

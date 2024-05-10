@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use std::error;
 use tokio::sync::mpsc;
 
-// Application result type.
 pub type ImageData = (String, Box<dyn StatefulProtocol>);
 
 pub struct App<'a> {
@@ -19,10 +18,10 @@ pub struct App<'a> {
 
 impl<'a> App<'a> {
     pub async fn new() -> Self {
-        let urls = load_config().unwrap_or_default();
-        let channel_size = (urls.len() + 1) * 10;
+        let urls_list = load_config().unwrap_or_default();
+        let channel_size = (urls_list.len() + 1) * 10;
         let (tx, rx) = mpsc::channel(channel_size);
-        Feed::fetch_and_parse_feeds(&urls, tx).await;
+        Feed::fetch_and_parse_feeds(&urls_list, tx).await;
 
         Self {
             running: true,
@@ -55,6 +54,9 @@ impl<'a> App<'a> {
     pub async fn add_feed(&mut self, url: &str) -> anyhow::Result<String> {
         let title = check_url(url).await?;
 
+        if self.feed_urls.contains(&url.to_string()) {
+            return Err(anyhow::anyhow!("Feed already added"));
+        }
         self.feed_urls.push(url.to_string());
         save_config(&self.feed_urls)?;
 
@@ -63,13 +65,13 @@ impl<'a> App<'a> {
 
     pub(crate) fn select_previous(&mut self) {
         if let Some(index) = self.list_state.selected() {
-            self.list_state.select(Some((index-1) % 2))
+            self.list_state.select(Some((index - 1) % 2))
         }
     }
 
     pub(crate) fn select_next(&mut self) {
         if let Some(index) = self.list_state.selected() {
-            self.list_state.select(Some((index+1) % 2))
+            self.list_state.select(Some((index + 1) % 2))
         }
     }
 
@@ -86,8 +88,17 @@ impl<'a> App<'a> {
         print!("{output}");
     }
 
-    pub fn remove_feed(&mut self, _url: &str) -> anyhow::Result<String> {
-        Ok("Ok".to_string())
+    pub fn remove_feed(&mut self, url: &str) -> anyhow::Result<String> {
+        if self.feed_urls.is_empty() {
+            return Err(anyhow::anyhow!("No feeds added yet. Add one with 'ta-rss add <url>'"));
+        }
+
+        if !self.feed_urls.contains(&url.to_string()) {
+            return Err(anyhow::anyhow!("Failed to remove feed"));
+        }
+        
+        self.feed_urls.retain(|x| x.eq(&url.to_string()));
+        Ok(format!("Removed feed: {}", url))
     }
 }
 
@@ -99,15 +110,12 @@ struct Config {
 fn load_config() -> anyhow::Result<Vec<String>> {
     let config_file = "feeds.json";
 
-    // Read the entire JSON file
     let config_data = std::fs::read_to_string(config_file).unwrap_or("".to_string());
 
-    // Parse the JSON string into Config struct
     let config: Config = serde_json::from_str(&config_data).unwrap_or(Config {
         feed_urls: Vec::new(),
     });
 
-    // Extract only the urls field from the Config struct
     Ok(config.feed_urls)
 }
 
@@ -117,10 +125,8 @@ fn save_config(urls: &[String]) -> anyhow::Result<()> {
     };
     let config_file = "feeds.json";
 
-    // Convert the Config struct into a JSON formatted string
     let config_data = serde_json::to_string_pretty(&config).expect("Failed to serialize JSON.");
 
-    // Write the resulting JSON string to the file
     std::fs::write(config_file, config_data).expect("Failed to write file.");
 
     Ok(())

@@ -1,7 +1,6 @@
 use crate::app::App;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-// Handles the key events and updates the state of [`App`].
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> anyhow::Result<()> {
     match key_event.code {
         KeyCode::Char('q') => app.quit(),
