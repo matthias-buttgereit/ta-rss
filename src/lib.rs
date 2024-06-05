@@ -27,7 +27,7 @@ pub async fn start_tui(mut app: App) -> anyhow::Result<()> {
             Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
             Event::Mouse(_) => {}
             Event::Resize(_, _) => {}
-            Event::Paste(text) => _handle_paste_event(&mut app, text)?,
+            Event::Paste(text) => _handle_paste_event(&mut app, &text)?,
         }
 
         tui.draw(&mut app)?;

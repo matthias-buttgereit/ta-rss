@@ -135,12 +135,12 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
             height: 2,
             ..description_area
         },
-    )
+    );
 }
 
 fn get_age(date: Option<chrono::prelude::DateTime<chrono::prelude::FixedOffset>>) -> String {
     match date {
-        None => "".to_string(),
+        None => String::new(),
         Some(date) => {
             let age = Utc::now() - date.with_timezone(&Utc);
             if age.num_weeks() > 0 {

@@ -66,7 +66,7 @@ impl Feed {
         &self.url
     }
 
-    pub async fn fetch_and_parse_feeds(urls: &[String], tx: mpsc::Sender<Feed>) {
+    pub fn fetch_and_parse_feeds(urls: &[String], tx: mpsc::Sender<Feed>) {
         let client = Client::new();
         for url in urls {
             let client = client.clone();

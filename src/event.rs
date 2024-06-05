@@ -26,7 +26,7 @@ impl EventHandler {
 
         let (sender, receiver) = mpsc::unbounded_channel();
 
-        let _sender = sender.clone();
+        let sender_clone = sender.clone();
 
         let handler = tokio::spawn(async move {
             let mut reader = crossterm::event::EventStream::new();
@@ -39,23 +39,23 @@ impl EventHandler {
                 tokio::select! {
                   _ = tick_delay => {
 
-                    _sender.send(Event::Tick).unwrap_or_default();
+                    sender_clone.send(Event::Tick).unwrap_or_default();
                   }
                   Some(Ok(evt)) = crossterm_event => {
 
                     match evt {
                       CrosstermEvent::Key(key) => {
                         if key.kind == crossterm::event::KeyEventKind::Press {
-                          _sender.send(Event::Key(key)).unwrap_or_default();
+                          sender_clone.send(Event::Key(key)).unwrap_or_default();
                         }
                       },
 
                       CrosstermEvent::Mouse(mouse) => {
-                        _sender.send(Event::Mouse(mouse)).unwrap_or_default();
+                        sender_clone.send(Event::Mouse(mouse)).unwrap_or_default();
                       },
 
                       CrosstermEvent::Resize(x, y) => {
-                        _sender.send(Event::Resize(x, y)).unwrap_or_default();
+                        sender_clone.send(Event::Resize(x, y)).unwrap_or_default();
                       },
 
                       CrosstermEvent::FocusLost => {},
@@ -63,7 +63,7 @@ impl EventHandler {
                       CrosstermEvent::FocusGained => {},
 
                       CrosstermEvent::Paste(text) => {
-                        _sender.send(Event::Paste(text)).unwrap_or_default();
+                        sender_clone.send(Event::Paste(text)).unwrap_or_default();
                       },
                     }
                   }

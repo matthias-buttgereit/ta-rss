@@ -22,7 +22,7 @@ impl App {
     pub async fn new() -> Self {
         let urls_list = load_config().unwrap_or_default();
         let (tx, rx) = mpsc::channel(urls_list.len());
-        Feed::fetch_and_parse_feeds(&urls_list, tx).await;
+        Feed::fetch_and_parse_feeds(&urls_list, tx);
 
         Self {
             running: true,
@@ -47,7 +47,7 @@ impl App {
             }
 
             if let Some(new_feed) = self.feeds.last() {
-                for entry in new_feed.entries.iter() {
+                for entry in &new_feed.entries {
                     self.all_entries.push(entry.clone());
                 }
 
@@ -79,7 +79,7 @@ impl App {
             self.list_state.select(Some(new_index));
 
             if self.popup.is_some() {
-                self.popup = Some(self.all_entries[new_index].clone())
+                self.popup = Some(self.all_entries[new_index].clone());
             }
         }
     }
@@ -95,7 +95,7 @@ impl App {
             self.list_state.select(Some(new_index));
 
             if self.popup.is_some() {
-                self.popup = Some(self.all_entries[new_index].clone())
+                self.popup = Some(self.all_entries[new_index].clone());
             }
         }
     }
@@ -108,7 +108,7 @@ impl App {
 
         let mut output = String::new();
         for url in &self.feed_urls {
-            output.push_str(&format!("{}\n", url));
+            output.push_str(&format!("{url}\n"));
         }
         print!("{output}");
     }
@@ -126,14 +126,14 @@ impl App {
 
         self.feed_urls.retain(|x| !x.eq(&url.to_string()));
         save_config(&self.feed_urls);
-        Ok(format!("Removed feed: {}", url))
+        Ok(format!("Removed feed: {url}"))
     }
 
     pub(crate) fn toggle_popup(&mut self) {
         if self.popup.is_some() {
-            self.popup = None
+            self.popup = None;
         } else if let Some(index) = self.list_state.selected() {
-            self.popup = Some(self.all_entries[index].clone())
+            self.popup = Some(self.all_entries[index].clone());
         }
     }
 
@@ -142,7 +142,7 @@ impl App {
             b.pub_date
                 .unwrap_or_default()
                 .cmp(&a.pub_date.unwrap_or_default())
-        })
+        });
     }
 }
 
