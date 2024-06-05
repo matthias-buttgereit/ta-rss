@@ -5,13 +5,9 @@ use ta_rss::{start_tui, Cli};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-
     let cli = Cli::parse();
 
-
     let mut app = App::new().await;
-
-
 
     match cli.command {
         Some(Commands::Add { url }) => match app.add_feed(&url).await {

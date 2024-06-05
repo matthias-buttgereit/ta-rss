@@ -1,13 +1,15 @@
 use std::{rc::Rc, sync::Arc};
 
+use atom_syndication::Link;
+use chrono::{DateTime, FixedOffset};
 use ratatui_image::protocol::StatefulProtocol;
 use reqwest::Client;
 use tokio::sync::mpsc;
 
 pub struct Feed {
     pub url: Arc<String>,
-    pub name: String,
-    pub entries: Vec<Entry>,
+    pub name: Arc<String>,
+    pub entries: Vec<Arc<Entry>>,
     pub pub_date: Option<chrono::DateTime<::chrono::FixedOffset>>,
 }
 
@@ -15,7 +17,7 @@ pub struct Entry {
     pub title: String,
     pub url: String,
     pub description: String,
-    pub pub_date: String,
+    pub pub_date: Option<chrono::DateTime<::chrono::FixedOffset>>,
     pub source_name: Arc<String>,
     pub image_url: Option<String>,
 }
@@ -32,9 +34,7 @@ impl FeedFetcher {
 
         let handler = tokio::spawn(async move {
             let client = Client::new();
-            if let Ok(parsed_url) = reqwest::Url::parse(&url) {
-                
-            }
+            if let Ok(parsed_url) = reqwest::Url::parse(&url) {}
         });
 
         Self {
@@ -54,7 +54,7 @@ impl Feed {
         &self.name
     }
 
-    pub fn entries(&self) -> &Vec<Entry> {
+    pub fn entries(&self) -> &Vec<Arc<Entry>> {
         &self.entries
     }
 
@@ -98,7 +98,7 @@ impl Feed {
 
                     let mut feed = Feed {
                         url: Arc::new(url),
-                        name: channel.title.clone(),
+                        name: Arc::new(channel.title.clone()),
                         entries: Vec::new(),
                         pub_date,
                     };
@@ -108,12 +108,51 @@ impl Feed {
                             title: item.title.unwrap_or("No Title".to_string()),
                             url: item.link.unwrap_or("No URL provided".to_string()),
                             description: item.description.unwrap_or("No Description".to_string()),
-                            pub_date: item.pub_date.unwrap_or_default(),
-                            source_name: Arc::clone(&feed.url),
+                            pub_date: DateTime::parse_from_rfc2822(
+                                &item.pub_date.unwrap_or_default(),
+                            )
+                            .ok(),
+                            source_name: feed.name.clone(),
                             image_url: None,
                         };
 
-                        feed.entries.push(entry);
+                        feed.entries.push(Arc::new(entry));
+                    }
+                    tx.send(feed).await.unwrap_or_default();
+                } else if let Ok(atom_feed) = atom_syndication::Feed::read_from(&bytes[..]) {
+                    let mut feed = Feed {
+                        url: Arc::new(url),
+                        name: Arc::new(atom_feed.title().to_string()),
+                        entries: Vec::new(),
+                        pub_date: Some(atom_feed.updated),
+                    };
+
+                    for item in atom_feed.entries {
+                        let url = match item.links.get(0) {
+                            Some(link) => link.href().to_string(),
+                            None => "No URL provided".to_string(),
+                        };
+
+                        let description = match item.summary() {
+                            Some(text) => text.to_string(),
+                            None => match item.content() {
+                                Some(content) => {
+                                    content.value().unwrap_or("No Description").to_string()
+                                }
+                                None => "No Description".to_string(),
+                            },
+                        };
+
+                        let entry = Entry {
+                            title: item.title.to_string(),
+                            url,
+                            description,
+                            pub_date: item.published,
+                            source_name: feed.name.clone(),
+                            image_url: None,
+                        };
+
+                        feed.entries.push(Arc::new(entry));
                     }
                     tx.send(feed).await.unwrap_or_default();
                 }
@@ -126,7 +165,7 @@ impl Entry {
     pub fn new(
         title: String,
         description: String,
-        pub_date: String,
+        pub_date: Option<DateTime<FixedOffset>>,
         source_name: Arc<String>,
         image_url: Option<String>,
     ) -> Self {
@@ -148,8 +187,11 @@ impl Entry {
         &self.description
     }
 
-    pub fn pub_date_string(&self) -> &str {
-        &self.pub_date
+    pub fn pub_date_string(&self) -> String {
+        match &self.pub_date {
+            Some(time) => time.to_rfc2822(),
+            None => "No Publish Date".to_string(),
+        }
     }
 
     pub fn image(&self) -> Option<Rc<dyn StatefulProtocol>> {

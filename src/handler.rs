@@ -10,16 +10,20 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> anyhow::Result<(
             }
         }
         KeyCode::Char(' ') => {
-            todo!("Toggle popup");
+            app.toggle_popup();
         }
         KeyCode::Char('o') | KeyCode::Char('O') => {
-            if let Some(entry) = app.popup {
+            if let Some(entry) = &app.popup {
                 let url = &entry.url;
                 let _open_error = open::that_in_background(url);
             };
         }
         KeyCode::Esc => {
-            todo!("Exit popup or exit app.");
+            if app.popup.is_some() {
+                app.popup = None;
+            } else {
+                app.quit()
+            }
         }
         KeyCode::Up => app.select_previous(),
         KeyCode::Down => app.select_next(),

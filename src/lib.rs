@@ -11,10 +11,10 @@ pub mod app;
 pub mod event;
 pub mod feed;
 pub mod handler;
+pub mod render;
 pub mod tui;
-pub mod ui;
 
-pub async fn start_tui(mut app: App<'_>) -> anyhow::Result<()> {
+pub async fn start_tui(mut app: App) -> anyhow::Result<()> {
     let backend = CrosstermBackend::new(io::stdout());
     let terminal = Terminal::new(backend)?;
     let events = EventHandler::new(100);
