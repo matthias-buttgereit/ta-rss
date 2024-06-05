@@ -140,23 +140,23 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
 
 fn get_age(date: Option<chrono::prelude::DateTime<chrono::prelude::FixedOffset>>) -> String {
     match date {
-        None => return "".to_string(),
+        None => "".to_string(),
         Some(date) => {
             let age = Utc::now() - date.with_timezone(&Utc);
             if age.num_weeks() > 0 {
                 let plural_s = if age.num_weeks() > 1 { "s" } else { "" };
-                return (format!("{} week{} ago", age.num_weeks(), plural_s)).to_string();
+                (format!("{} week{} ago", age.num_weeks(), plural_s)).to_string()
             } else if age.num_days() > 0 {
                 let plural_s = if age.num_days() > 1 { "s" } else { "" };
-                return (format!("{} day{} ago", age.num_days(), plural_s)).to_string();
+                (format!("{} day{} ago", age.num_days(), plural_s)).to_string()
             } else if age.num_hours() > 0 {
                 let plural_s = if age.num_hours() > 1 { "s" } else { "" };
-                return (format!("{} hour{} ago", age.num_hours(), plural_s)).to_string();
+                (format!("{} hour{} ago", age.num_hours(), plural_s)).to_string()
             } else if age.num_minutes() > 0 {
                 let plural_s = if age.num_minutes() > 1 { "s" } else { "" };
-                return (format!("{} minute{} ago", age.num_minutes(), plural_s)).to_string();
+                (format!("{} minute{} ago", age.num_minutes(), plural_s)).to_string()
             } else {
-                return "Just now".to_string();
+                "Just now".to_string()
             }
         }
     }

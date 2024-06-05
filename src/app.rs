@@ -70,13 +70,11 @@ impl App {
 
     pub(crate) fn select_previous(&mut self) {
         if let Some(index) = self.list_state.selected() {
-            let new_index: usize;
-
-            if index == 0 {
-                new_index = self.all_entries.len() - 1
+            let new_index = if index == 0 {
+                self.all_entries.len() - 1
             } else {
-                new_index = index - 1
-            }
+                index - 1
+            };
 
             self.list_state.select(Some(new_index));
 
@@ -88,13 +86,11 @@ impl App {
 
     pub(crate) fn select_next(&mut self) {
         if let Some(index) = self.list_state.selected() {
-            let new_index: usize;
-
-            if index == self.all_entries.len() - 1 {
-                new_index = 0
+            let new_index = if index == self.all_entries.len() - 1 {
+                0
             } else {
-                new_index = index + 1
-            }
+                index + 1
+            };
 
             self.list_state.select(Some(new_index));
 
@@ -136,10 +132,8 @@ impl App {
     pub(crate) fn toggle_popup(&mut self) {
         if self.popup.is_some() {
             self.popup = None
-        } else {
-            if let Some(index) = self.list_state.selected() {
-                self.popup = Some(self.all_entries[index].clone())
-            }
+        } else if let Some(index) = self.list_state.selected() {
+            self.popup = Some(self.all_entries[index].clone())
         }
     }
 

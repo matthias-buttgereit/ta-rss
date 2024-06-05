@@ -4,7 +4,6 @@ use atom_syndication::Link;
 use chrono::{DateTime, FixedOffset};
 use ratatui_image::protocol::StatefulProtocol;
 use reqwest::Client;
-use std::{rc::Rc, sync::Arc};
 use tokio::sync::mpsc;
 
 pub struct Feed {
@@ -129,7 +128,7 @@ impl Feed {
                     };
 
                     for item in atom_feed.entries {
-                        let url = match item.links.get(0) {
+                        let url = match item.links.first() {
                             Some(link) => link.href().to_string(),
                             None => "No URL provided".to_string(),
                         };
