@@ -1,7 +1,6 @@
-use std::{rc::Rc, sync::Arc};
-
 use ratatui_image::protocol::StatefulProtocol;
 use reqwest::Client;
+use std::{rc::Rc, sync::Arc};
 use tokio::sync::mpsc;
 
 pub struct Feed {

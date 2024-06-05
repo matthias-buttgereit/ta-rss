@@ -30,7 +30,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         },
     );
 
-    if let Some(_) = app.popup {
+    if app.popup.is_some() {
         let popup_area = Rect {
             x: (window_area.width / 2),
             y: window_area.y + 1,
@@ -56,23 +56,10 @@ fn render_keybindings(_app: &mut App, frame: &mut Frame, area: Rect) {
 }
 
 fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
-    let Some(entry) = app.popup else {
-        return
-    };
+    let Some(entry) = app.popup else { return };
 
-    // Extract and convert relevant data
-    let date = entry.pub_date_string();
-    let source = {
-        let mut source = entry.source_name().to_owned();
-        let source_len = area.width as usize - (date.len() + 4);
-        source.truncate(source_len);
-        source
-    };
-    let title = Paragraph::new(entry.title()).wrap(Wrap { trim: true });
-    let description = Paragraph::new(entry.description()).wrap(Wrap { trim: true });
-    let image: Option<String> = None; //&entry.image;
+    let (date, source, title, description, image) = extract_popup_informations(entry, area);
 
-    // Set-up layout
     let title_area = Rect {
         x: area.x + 2,
         y: area.y + 2,
@@ -102,15 +89,14 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
         ..area
     };
 
-    // Render everything
     let block = Block::bordered()
         .title(source)
         .title(Title::from(date).alignment(Alignment::Right));
-    // Clear the popup window
+
     frame.render_widget(Clear, popup_area);
     frame.render_widget(block, popup_area);
-    // Render feed title
     frame.render_widget(title, title_area);
+
     if let Some(image) = image {
         let _sf_image = StatefulImage::new(None);
         let _image = &mut image.clone();
@@ -119,7 +105,6 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
         y_coordinate = image_area.y + image_area.height + 1;
     }
 
-    // Render feed description
     frame.render_widget(
         description,
         Rect {
@@ -137,6 +122,24 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
             ..description_area
         },
     )
+}
+
+fn extract_popup_informations(
+    entry: &crate::feed::Entry,
+    area: Rect,
+) -> (&str, String, Paragraph, Paragraph, Option<String>) {
+    let date = entry.pub_date_string();
+    let source = {
+        let mut source = entry.source_name().to_owned();
+        let source_len = area.width as usize - (date.len() + 4);
+        source.truncate(source_len);
+        source
+    };
+    let title = Paragraph::new(entry.title()).wrap(Wrap { trim: true });
+    let description = Paragraph::new(entry.description()).wrap(Wrap { trim: true });
+    let image: Option<String> = None;
+    //&entry.image;
+    (date, source, title, description, image)
 }
 
 fn render_list(app: &mut App, frame: &mut Frame, area: Rect) {
