@@ -23,7 +23,9 @@ pub struct EventHandler {
 impl EventHandler {
     pub fn new(tick_rate: u64) -> Self {
         let tick_rate = Duration::from_millis(tick_rate);
+
         let (sender, receiver) = mpsc::unbounded_channel();
+
         let _sender = sender.clone();
 
         let handler = tokio::spawn(async move {
@@ -36,9 +38,11 @@ impl EventHandler {
 
                 tokio::select! {
                   _ = tick_delay => {
+
                     _sender.send(Event::Tick).unwrap_or_default();
                   }
                   Some(Ok(evt)) = crossterm_event => {
+
                     match evt {
                       CrosstermEvent::Key(key) => {
                         if key.kind == crossterm::event::KeyEventKind::Press {

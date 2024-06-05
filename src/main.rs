@@ -6,6 +6,7 @@ use ta_rss::{start_tui, Cli};
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
+
     let mut app = App::new().await;
 
     match cli.command {

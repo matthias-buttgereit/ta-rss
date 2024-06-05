@@ -1,4 +1,7 @@
+use std::io::Cursor;
+
 use crate::app::App;
+use chrono::{DateTime, Utc};
 use ratatui::{
     layout::{Alignment, Rect},
     style::{Color, Modifier, Style},
@@ -56,9 +59,20 @@ fn render_keybindings(_app: &mut App, frame: &mut Frame, area: Rect) {
 }
 
 fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
-    let Some(entry) = app.popup else { return };
+    let Some(entry) = &app.popup else { return };
 
-    let (date, source, title, description, image) = extract_popup_informations(entry, area);
+    let date = get_age(entry.pub_date);
+    let source = {
+        let mut source = entry.source_name().to_owned();
+        let source_len = area.width as usize - (date.len() + 4);
+        source.truncate(source_len);
+        source
+    };
+    let title = Paragraph::new(entry.title()).wrap(Wrap { trim: true });
+    let description = Cursor::new(entry.description());
+    let description = html2text::from_read(description, (area.width - 4) as usize);
+    let description = Paragraph::new(description);
+    let image: Option<String> = None; // &entry.image;
 
     let title_area = Rect {
         x: area.x + 2,
@@ -73,7 +87,7 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
             x: area.x + 2,
             y: y_coordinate,
             width: area.width - 4,
-            height: (area.width - 4) / 4, // clamp height to not overflow in short terminals
+            height: (area.width - 4) / 4, // TODO clamp height to not overflow in short terminals
         };
     }
     let description_area = Rect {
@@ -95,8 +109,8 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
 
     frame.render_widget(Clear, popup_area);
     frame.render_widget(block, popup_area);
-    frame.render_widget(title, title_area);
 
+    frame.render_widget(title, title_area);
     if let Some(image) = image {
         let _sf_image = StatefulImage::new(None);
         let _image = &mut image.clone();
@@ -124,22 +138,28 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
     )
 }
 
-fn extract_popup_informations(
-    entry: &crate::feed::Entry,
-    area: Rect,
-) -> (&str, String, Paragraph, Paragraph, Option<String>) {
-    let date = entry.pub_date_string();
-    let source = {
-        let mut source = entry.source_name().to_owned();
-        let source_len = area.width as usize - (date.len() + 4);
-        source.truncate(source_len);
-        source
-    };
-    let title = Paragraph::new(entry.title()).wrap(Wrap { trim: true });
-    let description = Paragraph::new(entry.description()).wrap(Wrap { trim: true });
-    let image: Option<String> = None;
-    //&entry.image;
-    (date, source, title, description, image)
+fn get_age(date: Option<chrono::prelude::DateTime<chrono::prelude::FixedOffset>>) -> String {
+    match date {
+        None => return "".to_string(),
+        Some(date) => {
+            let age = Utc::now() - date.with_timezone(&Utc);
+            if age.num_weeks() > 0 {
+                let plural_s = if age.num_weeks() > 1 { "s" } else { "" };
+                return (format!("{} week{} ago", age.num_weeks(), plural_s)).to_string();
+            } else if age.num_days() > 0 {
+                let plural_s = if age.num_days() > 1 { "s" } else { "" };
+                return (format!("{} day{} ago", age.num_days(), plural_s)).to_string();
+            } else if age.num_hours() > 0 {
+                let plural_s = if age.num_hours() > 1 { "s" } else { "" };
+                return (format!("{} hour{} ago", age.num_hours(), plural_s)).to_string();
+            } else if age.num_minutes() > 0 {
+                let plural_s = if age.num_minutes() > 1 { "s" } else { "" };
+                return (format!("{} minute{} ago", age.num_minutes(), plural_s)).to_string();
+            } else {
+                return "Just now".to_string();
+            }
+        }
+    }
 }
 
 fn render_list(app: &mut App, frame: &mut Frame, area: Rect) {
@@ -149,7 +169,7 @@ fn render_list(app: &mut App, frame: &mut Frame, area: Rect) {
         .border_type(BorderType::Rounded)
         .style(Style::default());
 
-    let feed_list: List = List::new(app.feeds.iter().map(|feed| feed.name()))
+    let feed_list: List = List::new(app.all_entries.iter().map(|entry| entry.title()))
         .highlight_style(
             Style::default()
                 .add_modifier(Modifier::BOLD)
