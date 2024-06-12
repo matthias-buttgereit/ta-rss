@@ -36,7 +36,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     if app.popup.is_some() {
         let popup_area = Rect {
             x: (window_area.width / 2),
-            y: window_area.y + 1,
+            y: window_area.y,
             width: (window_area.width / 2),
             height: window_area.height - 3,
         };

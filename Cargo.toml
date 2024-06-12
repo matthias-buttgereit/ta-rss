@@ -7,7 +7,7 @@ edition = "2021"
 
 [lints.rust]
 unsafe_code = "forbid"
-unused = "allow" # For exploratory dev.
+unused = { level = "allow", priority = -1 } # For exploratory dev.
 
 [dependencies]
 anyhow = "1.0"
