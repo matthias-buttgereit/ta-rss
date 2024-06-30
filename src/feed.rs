@@ -1,9 +1,7 @@
-use std::{rc::Rc, sync::Arc};
-
-use atom_syndication::Link;
 use chrono::{DateTime, FixedOffset};
 use ratatui_image::protocol::StatefulProtocol;
 use reqwest::Client;
+use std::{rc::Rc, sync::Arc};
 use tokio::sync::mpsc;
 
 pub struct Feed {
@@ -20,29 +18,6 @@ pub struct Entry {
     pub pub_date: Option<chrono::DateTime<::chrono::FixedOffset>>,
     pub source_name: Arc<String>,
     pub image_url: Option<String>,
-}
-
-pub struct FeedFetcher {
-    sender: mpsc::UnboundedSender<Feed>,
-    receiver: mpsc::UnboundedReceiver<Feed>,
-    handler: tokio::task::JoinHandle<()>,
-}
-
-impl FeedFetcher {
-    pub fn new(url: String) -> Self {
-        let (sender, receiver) = mpsc::unbounded_channel();
-
-        let handler = tokio::spawn(async move {
-            let client = Client::new();
-            if let Ok(parsed_url) = reqwest::Url::parse(&url) {}
-        });
-
-        Self {
-            sender,
-            receiver,
-            handler,
-        }
-    }
 }
 
 impl Feed {
@@ -85,80 +60,85 @@ impl Feed {
                 };
 
                 if let Ok(channel) = rss::Channel::read_from(&bytes[..]) {
-                    let pub_date = match channel.pub_date() {
-                        Some(pub_date) => {
-                            if let Ok(date) = chrono::DateTime::parse_from_rfc2822(pub_date) {
-                                Some(date)
-                            } else {
-                                None
-                            }
-                        }
-                        None => None,
-                    };
-
-                    let mut feed = Feed {
-                        url: Arc::new(url),
-                        name: Arc::new(channel.title.clone()),
-                        entries: Vec::new(),
-                        pub_date,
-                    };
-
-                    for item in channel.items {
-                        let entry = Entry {
-                            title: item.title.unwrap_or("No Title".to_string()),
-                            url: item.link.unwrap_or("No URL provided".to_string()),
-                            description: item.description.unwrap_or("No Description".to_string()),
-                            pub_date: DateTime::parse_from_rfc2822(
-                                &item.pub_date.unwrap_or_default(),
-                            )
-                            .ok(),
-                            source_name: feed.name.clone(),
-                            image_url: None,
-                        };
-
-                        feed.entries.push(Arc::new(entry));
-                    }
+                    let feed = get_rss_feed(channel, url);
                     tx.send(feed).await.unwrap_or_default();
                 } else if let Ok(atom_feed) = atom_syndication::Feed::read_from(&bytes[..]) {
-                    let mut feed = Feed {
-                        url: Arc::new(url),
-                        name: Arc::new(atom_feed.title().to_string()),
-                        entries: Vec::new(),
-                        pub_date: Some(atom_feed.updated),
-                    };
-
-                    for item in atom_feed.entries {
-                        let url = match item.links.first() {
-                            Some(link) => link.href().to_string(),
-                            None => "No URL provided".to_string(),
-                        };
-
-                        let description = match item.summary() {
-                            Some(text) => text.to_string(),
-                            None => match item.content() {
-                                Some(content) => {
-                                    content.value().unwrap_or("No Description").to_string()
-                                }
-                                None => "No Description".to_string(),
-                            },
-                        };
-
-                        let entry = Entry {
-                            title: item.title.to_string(),
-                            url,
-                            description,
-                            pub_date: item.published,
-                            source_name: feed.name.clone(),
-                            image_url: None,
-                        };
-
-                        feed.entries.push(Arc::new(entry));
-                    }
+                    let feed = get_atom_feed(url, atom_feed);
                     tx.send(feed).await.unwrap_or_default();
                 }
             });
         }
     }
+}
+
+fn get_atom_feed(url: String, atom_feed: atom_syndication::Feed) -> Feed {
+    let mut feed = Feed {
+        url: Arc::new(url),
+        name: Arc::new(atom_feed.title().to_string()),
+        entries: Vec::new(),
+        pub_date: Some(atom_feed.updated),
+    };
+
+    for item in atom_feed.entries {
+        let url = match item.links.first() {
+            Some(link) => link.href().to_string(),
+            None => "No URL provided".to_string(),
+        };
+
+        let description = match item.summary() {
+            Some(text) => text.to_string(),
+            None => match item.content() {
+                Some(content) => content.value().unwrap_or("No Description").to_string(),
+                None => "No Description".to_string(),
+            },
+        };
+
+        let entry = Entry {
+            title: item.title.to_string(),
+            url,
+            description,
+            pub_date: item.published,
+            source_name: feed.name.clone(),
+            image_url: None,
+        };
+
+        feed.entries.push(Arc::new(entry));
+    }
+    feed
+}
+
+fn get_rss_feed(channel: rss::Channel, url: String) -> Feed {
+    let pub_date = match channel.pub_date() {
+        Some(pub_date) => {
+            if let Ok(date) = chrono::DateTime::parse_from_rfc2822(pub_date) {
+                Some(date)
+            } else {
+                None
+            }
+        }
+        None => None,
+    };
+
+    let mut feed = Feed {
+        url: Arc::new(url),
+        name: Arc::new(channel.title.clone()),
+        entries: Vec::new(),
+        pub_date,
+    };
+
+    for item in channel.items {
+        let entry = Entry {
+            title: item.title.unwrap_or("No Title".to_string()),
+            url: item.link.unwrap_or("No URL provided".to_string()),
+            description: item.description.unwrap_or("No Description".to_string()),
+            pub_date: DateTime::parse_from_rfc2822(&item.pub_date.unwrap_or_default()).ok(),
+            source_name: feed.name.clone(),
+            image_url: None,
+        };
+
+        feed.entries.push(Arc::new(entry));
+    }
+    feed
 }
 
 impl Entry {
@@ -232,16 +212,19 @@ impl Ord for Entry {
 }
 
 pub async fn check_url(url: &str) -> anyhow::Result<String> {
-    let response = reqwest::get(url).await?;
-    let result = response.bytes().await?;
-
-    if let Ok(channel) = rss::Channel::read_from(&result[..]) {
-        return Ok(channel.title);
+    if let Ok(response) = reqwest::get(url).await {
+        if let Ok(result) = response.bytes().await {
+            if let Ok(channel) = rss::Channel::read_from(&result[..]) {
+                return Ok(channel.title);
+            }
+            if let Ok(feed) = atom_syndication::Feed::read_from(&result[..]) {
+                return Ok(feed.title.value);
+            }
+            Err(anyhow::anyhow!("Unable to parse feed."))
+        } else {
+            Err(anyhow::anyhow!("Unable to read feed."))
+        }
+    } else {
+        Err(anyhow::anyhow!("Unable to fetch feed."))
     }
-    if let Ok(feed) = atom_syndication::Feed::read_from(&result[..]) {
-        return Ok(feed.title.value);
-    }
-
-    let err = anyhow::Error::msg("Unable to parse feed.");
-    Err(err)
 }

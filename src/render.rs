@@ -1,7 +1,5 @@
-use std::io::Cursor;
-
 use crate::app::App;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use ratatui::{
     layout::{Alignment, Rect},
     style::{Color, Modifier, Style},
@@ -10,6 +8,7 @@ use ratatui::{
     Frame,
 };
 use ratatui_image::StatefulImage;
+use std::io::Cursor;
 
 pub fn render(app: &mut App, frame: &mut Frame) {
     let window_area = frame.size();

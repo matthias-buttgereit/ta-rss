@@ -1,12 +1,10 @@
 use crate::app::App;
 use crate::event::EventHandler;
 use crate::render;
-use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
-use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
+use ratatui::crossterm::event::{DisableMouseCapture, EnableMouseCapture};
+use ratatui::crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::backend::Backend;
 use ratatui::Terminal;
-use std::io;
-use std::panic;
 
 #[derive(Debug)]
 pub struct Tui<B: Backend> {
@@ -21,9 +19,9 @@ impl<B: Backend> Tui<B> {
 
     pub fn init(&mut self) -> anyhow::Result<()> {
         terminal::enable_raw_mode()?;
-        crossterm::execute!(io::stdout(), EnterAlternateScreen, EnableMouseCapture)?;
-        let panic_hook = panic::take_hook();
-        panic::set_hook(Box::new(move |panic| {
+        ratatui::crossterm::execute!(std::io::stdout(), EnterAlternateScreen, EnableMouseCapture)?;
+        let panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |panic| {
             Self::reset().expect("failed to reset the terminal");
             panic_hook(panic);
         }));
@@ -40,7 +38,7 @@ impl<B: Backend> Tui<B> {
 
     fn reset() -> anyhow::Result<()> {
         terminal::disable_raw_mode()?;
-        crossterm::execute!(io::stdout(), LeaveAlternateScreen, DisableMouseCapture)?;
+        ratatui::crossterm::execute!(std::io::stdout(), LeaveAlternateScreen, DisableMouseCapture)?;
         Ok(())
     }
 
