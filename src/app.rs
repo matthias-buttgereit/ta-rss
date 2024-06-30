@@ -1,7 +1,7 @@
 use crate::feed::{check_url, Entry, Feed};
 use ratatui_image::protocol::StatefulProtocol;
 use serde::{Deserialize, Serialize};
-use std::{error, rc::Rc, sync::Arc};
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
 const CONFIG_FILE_NAME: &str = "feeds.json";
@@ -21,7 +21,7 @@ pub struct App {
 impl App {
     pub async fn new() -> Self {
         let urls_list = load_config().unwrap_or_default();
-        let (tx, rx) = mpsc::channel(urls_list.len());
+        let (tx, rx) = mpsc::channel(urls_list.len().max(1));
         Feed::fetch_and_parse_feeds(&urls_list, tx);
 
         Self {
@@ -43,7 +43,7 @@ impl App {
         if let Ok(feed) = self.feed_receiver.try_recv() {
             self.feeds.push(feed);
             if self.list_state.selected().is_none() {
-                self.list_state.select(Some(0));
+                self.list_state.select_first();
             }
 
             if let Some(new_feed) = self.feeds.last() {
@@ -51,7 +51,7 @@ impl App {
                     self.all_entries.push(entry.clone());
                 }
 
-                self.sort_entries();
+                self.all_entries.sort();
             }
         }
     }
@@ -125,7 +125,7 @@ impl App {
         }
 
         self.feed_urls.retain(|x| !x.eq(&url.to_string()));
-        save_config(&self.feed_urls);
+        let _ = save_config(&self.feed_urls);
         Ok(format!("Removed feed: {url}"))
     }
 
@@ -135,14 +135,6 @@ impl App {
         } else if let Some(index) = self.list_state.selected() {
             self.popup = Some(self.all_entries[index].clone());
         }
-    }
-
-    fn sort_entries(&mut self) {
-        self.all_entries.sort_by(|a, b| {
-            b.pub_date
-                .unwrap_or_default()
-                .cmp(&a.pub_date.unwrap_or_default())
-        });
     }
 }
 

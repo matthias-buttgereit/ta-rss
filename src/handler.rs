@@ -1,5 +1,5 @@
 use crate::app::App;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> anyhow::Result<()> {
     match key_event.code {
