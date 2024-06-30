@@ -162,23 +162,6 @@ impl Feed {
 }
 
 impl Entry {
-    pub fn new(
-        title: String,
-        description: String,
-        pub_date: Option<DateTime<FixedOffset>>,
-        source_name: Arc<String>,
-        image_url: Option<String>,
-    ) -> Self {
-        Self {
-            title,
-            description,
-            pub_date,
-            url: String::new(),
-            image_url,
-            source_name,
-        }
-    }
-
     pub fn title(&self) -> &str {
         &self.title
     }
