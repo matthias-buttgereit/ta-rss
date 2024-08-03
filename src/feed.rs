@@ -1,23 +1,14 @@
 use chrono::{DateTime, FixedOffset};
-use ratatui_image::protocol::StatefulProtocol;
+use ratatui_image::{picker::Picker, protocol::StatefulProtocol};
 use reqwest::Client;
-use std::{rc::Rc, sync::Arc};
-use tokio::sync::mpsc;
+use std::{default, sync::Arc};
+use tokio::sync::{mpsc, oneshot::Receiver};
 
 pub struct Feed {
     pub url: Arc<String>,
     pub name: Arc<String>,
     pub entries: Vec<Arc<Entry>>,
     pub pub_date: Option<chrono::DateTime<::chrono::FixedOffset>>,
-}
-
-pub struct Entry {
-    pub title: String,
-    pub url: String,
-    pub description: String,
-    pub pub_date: Option<chrono::DateTime<::chrono::FixedOffset>>,
-    pub source_name: Arc<String>,
-    pub image_url: Option<String>,
 }
 
 impl Feed {
@@ -100,6 +91,7 @@ fn get_atom_feed(url: String, atom_feed: atom_syndication::Feed) -> Feed {
             pub_date: item.published,
             source_name: feed.name.clone(),
             image_url: None,
+            ..Default::default()
         };
 
         feed.entries.push(Arc::new(entry));
@@ -134,11 +126,24 @@ fn get_rss_feed(channel: rss::Channel, url: String) -> Feed {
             pub_date: DateTime::parse_from_rfc2822(&item.pub_date.unwrap_or_default()).ok(),
             source_name: feed.name.clone(),
             image_url: None,
+            ..Default::default()
         };
 
         feed.entries.push(Arc::new(entry));
     }
     feed
+}
+
+#[derive(Default)]
+pub struct Entry {
+    pub title: String,
+    pub url: String,
+    pub description: String,
+    pub pub_date: Option<chrono::DateTime<::chrono::FixedOffset>>,
+    pub source_name: Arc<String>,
+    pub image_url: Option<String>,
+    pub image: Option<Arc<dyn StatefulProtocol>>,
+    image_recv: Option<Receiver<Arc<dyn StatefulProtocol>>>,
 }
 
 impl Entry {
@@ -157,12 +162,33 @@ impl Entry {
         }
     }
 
-    pub fn image(&self) -> Option<Rc<dyn StatefulProtocol>> {
-        todo!();
-        // match &self.image {
-        //     Some(image_ref) => Some(image_ref.clone()),
-        //     None => None,
-        // }
+    fn fetch_image(url: &str) -> Arc<dyn StatefulProtocol> {
+        let image_bytes = url.as_bytes();
+
+        let b = image::load_from_memory(image_bytes).unwrap();
+        let mut picker = Picker::new((8, 15));
+        picker.protocol_type = picker.guess_protocol();
+
+        picker.new_resize_protocol(b).into()
+    }
+
+    pub fn image(&mut self) -> Option<Arc<dyn StatefulProtocol>> {
+        if let Some(receiver) = &mut self.image_recv {
+            if let Ok(image) = receiver.try_recv() {
+                return Some(image);
+            }
+        }
+
+        if let Some(image_url) = &self.image_url {
+            match &self.image {
+                None => {
+                    let _image = Entry::fetch_image(image_url);
+                    return None;
+                }
+                Some(image) => return Some(image.clone()),
+            }
+        }
+        None
     }
 
     pub fn url(&self) -> &str {

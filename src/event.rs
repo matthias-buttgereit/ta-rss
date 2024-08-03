@@ -1,6 +1,6 @@
-use ratatui::crossterm::event::{Event as CrosstermEvent, KeyEvent, MouseEvent};
 use crossterm;
 use futures::{FutureExt, StreamExt};
+use ratatui::crossterm::event::{Event as CrosstermEvent, KeyEvent, MouseEvent};
 use std::time::Duration;
 use tokio::sync::mpsc;
 

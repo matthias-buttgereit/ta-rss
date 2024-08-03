@@ -10,22 +10,22 @@ unsafe_code = "forbid"
 unused = { level = "allow", priority = -1 } # For exploratory dev.
 
 [dependencies]
-anyhow = "1"
+anyhow = "1.0"
 atom_syndication = "0.12"
 chrono = "0.4"
-clap = { version = "4", features = ["derive"] }
-crossterm = { version = "0", features = ["event-stream"] }
+clap = { version = "4.5", features = ["derive"] }
+crossterm = { version = "0.27", features = ["event-stream"] }
 futures = "0.3"
 html2text = "0.12"
 image = "0.25"
-open = "5"
+open = "5.3"
 ratatui = "0.27"
-ratatui-image = { version = "1", features = ["crossterm"] }
+ratatui-image = { version = "1.0", features = ["crossterm"] }
 reqwest = { version = "0.12", features = ["blocking"] }
-rss = { version = "2", features = ["atom", "atom_syndication"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-tokio = { version = "1", features = ["full"] }
+rss = { version = "2.0", features = ["atom", "atom_syndication"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.39", features = ["full"] }
 
 [profile.release]
 strip = true      # Automatically strip symbols from the binary.
