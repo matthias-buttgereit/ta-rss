@@ -3,7 +3,8 @@ use clap::Parser;
 use clap::Subcommand;
 use event::{Event, EventHandler};
 use handler::{_handle_paste_event, handle_key_events};
-use ratatui::{backend::CrosstermBackend, Terminal};
+use ratatui::prelude::CrosstermBackend;
+use ratatui::Terminal;
 use std::io;
 use tui::Tui;
 

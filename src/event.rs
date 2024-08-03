@@ -1,6 +1,5 @@
-use crossterm;
+use crossterm::event::{Event as CrosstermEvent, KeyEvent, KeyEventKind, MouseEvent};
 use futures::{FutureExt, StreamExt};
-use ratatui::crossterm::event::{Event as CrosstermEvent, KeyEvent, MouseEvent};
 use std::time::Duration;
 use tokio::sync::mpsc;
 
@@ -46,7 +45,7 @@ impl EventHandler {
 
                     match evt {
                       CrosstermEvent::Key(key) => {
-                        if key.kind == ratatui::crossterm::event::KeyEventKind::Press {
+                        if key.kind == KeyEventKind::Press {
                           sender_clone.send(Event::Key(key)).unwrap_or_default();
                         }
                       },
