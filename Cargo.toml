@@ -10,12 +10,12 @@ anyhow = "1.0"
 atom_syndication = "0.12"
 chrono = "0.4"
 clap = { version = "4.5", features = ["derive"] }
-crossterm = { version = "0.27", features = ["event-stream"] }
+crossterm = { version = "0.28", features = ["event-stream"] }
 futures = "0.3"
 html_parser = "0.7"
 image = "0.25"
 open = "5.3"
-ratatui = "0.27"
+ratatui = "0.28"
 ratatui-image = { version = "1.0", features = ["crossterm"] }
 reqwest = { version = "0.12", features = ["blocking"] }
 rss = { version = "2.0", features = ["atom", "atom_syndication"] }

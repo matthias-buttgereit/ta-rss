@@ -12,7 +12,7 @@ use ratatui::{
 use ratatui_image::StatefulImage;
 
 pub fn render(app: &mut App, frame: &mut Frame) {
-    let window_area = frame.size();
+    let window_area = frame.area();
     render_list(
         app,
         frame,
