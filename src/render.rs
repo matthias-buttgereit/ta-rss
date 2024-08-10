@@ -11,7 +11,7 @@ use ratatui_image::StatefulImage;
 use std::io::Cursor;
 
 pub fn render(app: &mut App, frame: &mut Frame) {
-    let window_area = frame.size();
+    let window_area = frame.area();
     let main_area = Rect {
         height: window_area.height - 1,
         ..window_area
