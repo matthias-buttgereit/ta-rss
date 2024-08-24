@@ -22,22 +22,24 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         render_instructions(frame, window_area);
     }
 
-    render_keybindings(
-        app,
-        frame,
-        Rect {
-            height: 1,
-            y: window_area.height - 1,
-            ..window_area
-        },
-    );
+    if window_area.height > 2 {
+        render_keybindings(
+            app,
+            frame,
+            Rect {
+                height: 1,
+                y: window_area.height - 1,
+                ..window_area
+            },
+        );
+    }
 
-    if app.popup.is_some() {
+    if app.popup.is_some() && window_area.height > 10 {
         let popup_area = Rect {
-            x: (window_area.width / 2),
+            x: (window_area.width / 2) + window_area.width % 2,
             y: window_area.y,
             width: (window_area.width / 2),
-            height: window_area.height - 3,
+            height: window_area.height,
         };
         render_popup(app, frame, popup_area);
     }
@@ -59,6 +61,7 @@ fn render_keybindings(_app: &mut App, frame: &mut Frame, area: Rect) {
 
 fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
     let Some(entry) = &app.popup else { return };
+    let content_width = area.width - 4;
 
     let date = get_age(entry.pub_date);
     let source = {
@@ -67,20 +70,21 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
         source.truncate(source_len);
         source
     };
-    let title = Paragraph::new(entry.title()).wrap(Wrap { trim: true });
-    let description = Cursor::new(entry.description());
-    let description = html2text::from_read(description, (area.width - 4) as usize);
-    let description = Paragraph::new(description);
-    let image: Option<String> = None; // &entry.image;
 
+    // title
+    let title = Paragraph::new(entry.title()).wrap(Wrap { trim: true });
+    let title_height = title.line_count(content_width) as u16;
     let title_area = Rect {
         x: area.x + 2,
         y: area.y + 2,
-        width: area.width - 4,
-        height: 2,
+        width: content_width,
+        height: title_height,
     };
+
+    // image
+    let image: Option<String> = None; // &entry.image;
     let mut image_area = Rect::default();
-    let mut y_coordinate = title_area.y + 3;
+    let mut y_coordinate = title_area.y + title_height + 1;
     if image.is_some() {
         image_area = Rect {
             x: area.x + 2,
@@ -89,11 +93,17 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
             height: (area.width - 4) / 4, // TODO clamp height to not overflow in short terminals
         };
     }
+
+    // description
+    let description = Cursor::new(entry.description());
+    let description = html2text::from_read(description, content_width as usize);
+    let description = Paragraph::new(description);
+    let description_height = description.line_count(content_width) as u16;
     let description_area = Rect {
         x: area.x + 2,
         y: y_coordinate,
         width: area.width - 4,
-        height: 9,
+        height: description_height.min(area.height - y_coordinate - 4),
     };
 
     let popup_height = title_area.height + description_area.height + image_area.height + 6;

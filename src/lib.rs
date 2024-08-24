@@ -1,3 +1,10 @@
+pub mod app;
+pub mod event;
+pub mod feed;
+pub mod handler;
+pub mod render;
+pub mod tui;
+
 use app::App;
 use clap::Parser;
 use clap::Subcommand;
@@ -7,13 +14,6 @@ use ratatui::prelude::CrosstermBackend;
 use ratatui::Terminal;
 use std::io;
 use tui::Tui;
-
-pub mod app;
-pub mod event;
-pub mod feed;
-pub mod handler;
-pub mod render;
-pub mod tui;
 
 pub async fn start_tui(mut app: App) -> anyhow::Result<()> {
     let backend = CrosstermBackend::new(io::stdout());
