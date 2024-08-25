@@ -59,7 +59,7 @@ fn render_keybindings(_app: &mut App, frame: &mut Frame, area: Rect) {
     frame.render_widget(Line::raw(keybindings), area);
 }
 
-fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
+fn render_popup(app: &mut App, frame: &mut Frame, area: Rect) {
     let Some(entry) = &app.popup else { return };
     let content_width = area.width - 4;
 
@@ -99,14 +99,20 @@ fn render_popup(app: &App, frame: &mut Frame, area: Rect) {
     let description = html2text::from_read(description, content_width as usize);
     let description = Paragraph::new(description);
     let description_height = description.line_count(content_width) as u16;
+    let max_description_height = area.height - y_coordinate - 2;
+    let max_offset = description_height.saturating_sub(max_description_height);
+    if app.popup_scroll_offset > max_offset {
+        app.popup_scroll_offset = max_offset;
+    }
+    let description = description.scroll((app.popup_scroll_offset, 0));
     let description_area = Rect {
         x: area.x + 2,
         y: y_coordinate,
         width: area.width - 4,
-        height: description_height.min(area.height - y_coordinate - 4),
+        height: description_height.min(max_description_height),
     };
 
-    let popup_height = title_area.height + description_area.height + image_area.height + 6;
+    let popup_height = title_area.height + description_area.height + image_area.height + 4;
     let popup_area = Rect {
         height: popup_height,
         ..area

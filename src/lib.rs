@@ -26,7 +26,14 @@ pub async fn start_tui(mut app: App) -> anyhow::Result<()> {
         match tui.events.next().await? {
             Event::Tick => app.tick(),
             Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
-            Event::Mouse(_) => {}
+            Event::Mouse(mouse_event) => {
+                if mouse_event.kind == crossterm::event::MouseEventKind::ScrollDown {
+                    app.scroll_down();
+                }
+                if mouse_event.kind == crossterm::event::MouseEventKind::ScrollUp {
+                    app.scroll_up();
+                }
+            }
             Event::Resize(_, _) => {}
             Event::Paste(text) => _handle_paste_event(&mut app, &text)?,
         }

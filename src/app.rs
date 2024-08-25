@@ -1,7 +1,7 @@
 use crate::feed::{check_url, Entry, Feed};
 use ratatui_image::protocol::StatefulProtocol;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use std::{default, sync::Arc};
 use tokio::sync::mpsc;
 
 const CONFIG_FILE_NAME: &str = "feeds.json";
@@ -16,6 +16,7 @@ pub struct App {
     pub all_entries: Vec<Arc<Entry>>,
     pub list_state: ratatui::widgets::ListState,
     feed_receiver: mpsc::Receiver<Feed>,
+    pub popup_scroll_offset: u16,
 }
 
 impl App {
@@ -32,6 +33,7 @@ impl App {
             all_entries: Vec::new(),
             list_state: ratatui::widgets::ListState::default(),
             feed_receiver: rx,
+            popup_scroll_offset: 0,
         }
     }
 
@@ -79,6 +81,7 @@ impl App {
             self.list_state.select(Some(new_index));
 
             if self.popup.is_some() {
+                self.popup_scroll_offset = 0;
                 self.popup = Some(self.all_entries[new_index].clone());
             }
         }
@@ -95,6 +98,7 @@ impl App {
             self.list_state.select(Some(new_index));
 
             if self.popup.is_some() {
+                self.popup_scroll_offset = 0;
                 self.popup = Some(self.all_entries[new_index].clone());
             }
         }
@@ -130,10 +134,23 @@ impl App {
     }
 
     pub(crate) fn toggle_popup(&mut self) {
+        self.popup_scroll_offset = 0;
         if self.popup.is_some() {
             self.popup = None;
         } else if let Some(index) = self.list_state.selected() {
             self.popup = Some(self.all_entries[index].clone());
+        }
+    }
+
+    pub(crate) fn scroll_down(&mut self) {
+        if self.popup.is_some() {
+            self.popup_scroll_offset += 1;
+        }
+    }
+
+    pub(crate) fn scroll_up(&mut self) {
+        if self.popup.is_some() && self.popup_scroll_offset > 0 {
+            self.popup_scroll_offset -= 1;
         }
     }
 }
