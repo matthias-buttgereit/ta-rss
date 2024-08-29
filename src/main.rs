@@ -1,7 +1,12 @@
+mod app;
+mod events;
+mod feed;
+mod network;
+mod tui;
+mod utils;
+
+use app::{App, Cli, Commands};
 use clap::Parser;
-use ta_rss::app::App;
-use ta_rss::Commands;
-use ta_rss::{start_tui, Cli};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -20,7 +25,7 @@ async fn main() -> anyhow::Result<()> {
         },
         Some(Commands::List) => app.print_feeds(),
         None => {
-            start_tui(app).await?;
+            App::start_tui(app).await?;
         }
     }
 

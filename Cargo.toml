@@ -19,9 +19,9 @@ futures = "0.3"
 html2text = "0.12"
 image = "0.25"
 open = "5.3"
-ratatui = { version = "^0.28", features = ["unstable-rendered-line-info"] }
+ratatui = { version = "0.28", features = ["unstable-rendered-line-info"] }
 ratatui-image = { version = "1.0", features = ["crossterm"] }
-reqwest = { version = "0.12", features = ["blocking"] }
+reqwest = "0.12"
 rss = { version = "2.0", features = ["atom", "atom_syndication"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

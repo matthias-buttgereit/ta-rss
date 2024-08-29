@@ -1,4 +1,11 @@
-use crate::feed::{check_url, Entry, Feed};
+use crate::{
+    feed::{
+        entry::{check_url, Entry},
+        Feed,
+    },
+    tui,
+};
+use clap::{Parser, Subcommand};
 use ratatui_image::protocol::StatefulProtocol;
 use serde::{Deserialize, Serialize};
 use std::{default, sync::Arc};
@@ -24,10 +31,11 @@ impl App {
         let urls_list = load_config().unwrap_or_default();
         let (tx, rx) = mpsc::channel(urls_list.len().max(1));
         Feed::fetch_and_parse_feeds(&urls_list, tx);
+        let feed_urls = load_config().unwrap_or_default();
 
         Self {
             running: true,
-            feed_urls: load_config().unwrap_or_default(),
+            feed_urls,
             popup: None,
             feeds: Vec::new(),
             all_entries: Vec::new(),
@@ -35,6 +43,10 @@ impl App {
             feed_receiver: rx,
             popup_scroll_offset: 0,
         }
+    }
+
+    pub async fn start_tui(app: Self) -> anyhow::Result<()> {
+        tui::start_tui(app).await
     }
 
     pub fn quit(&mut self) {
@@ -173,4 +185,19 @@ fn save_config(urls: &[String]) -> anyhow::Result<()> {
     let config_as_json = serde_json::to_string_pretty(&current_config)?;
     std::fs::write(CONFIG_FILE_NAME, config_as_json)?;
     Ok(())
+}
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+#[command(propagate_version = true)]
+pub struct Cli {
+    #[command(subcommand)]
+    pub command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+pub enum Commands {
+    Add { url: String },
+    Remove { url: String },
+    List,
 }

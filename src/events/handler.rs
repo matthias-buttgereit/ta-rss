@@ -1,5 +1,6 @@
-use crate::app::App;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+use crate::app::App;
 
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> anyhow::Result<()> {
     match key_event.code {
@@ -33,6 +34,6 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> anyhow::Result<(
     Ok(())
 }
 
-pub fn _handle_paste_event(_app: &mut App, _text: &str) -> anyhow::Result<()> {
+pub fn handle_paste_event(_app: &mut App, _text: &str) -> anyhow::Result<()> {
     todo!("Paste event not implemented yet. Depends on crossterm feature 'bracketed-paste'.");
 }
