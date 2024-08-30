@@ -8,8 +8,9 @@ pub enum Event {
     Tick,
     Key(KeyEvent),
     Mouse(MouseEvent),
-    Resize(u16, u16),
     Paste(String),
+    #[allow(dead_code)]
+    Resize(u16, u16),
 }
 
 #[allow(dead_code)]

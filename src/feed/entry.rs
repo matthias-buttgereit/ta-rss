@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use ratatui_image::{picker::Picker, protocol::StatefulProtocol};
-use tokio::sync::mpsc::Receiver;
+use tokio::sync::{oneshot::Receiver, RwLock};
 
 #[derive(Default)]
 pub struct Entry {
@@ -11,7 +11,7 @@ pub struct Entry {
     pub pub_date: Option<chrono::DateTime<::chrono::FixedOffset>>,
     pub source_name: Arc<String>,
     pub image_url: Option<String>,
-    pub image: Option<Arc<dyn StatefulProtocol>>,
+    pub image: Option<Arc<RwLock<Vec<u8>>>>,
     pub image_recv: Option<Receiver<Arc<dyn StatefulProtocol>>>,
 }
 
@@ -24,44 +24,18 @@ impl Entry {
         &self.description
     }
 
-    pub fn pub_date_string(&self) -> String {
-        match &self.pub_date {
-            Some(time) => time.to_rfc2822(),
-            None => "No Publish Date".to_string(),
-        }
-    }
-
-    fn fetch_image(url: &str) -> Arc<dyn StatefulProtocol> {
-        let image_bytes = url.as_bytes();
-
-        let b = image::load_from_memory(image_bytes).unwrap();
+    pub fn _fetch_image(_url: &str) -> Arc<dyn StatefulProtocol> {
+        let image_bytes = b"";
+        let _b = image::load_from_memory(image_bytes).unwrap();
         let mut picker = Picker::new((8, 15));
         picker.protocol_type = picker.guess_protocol();
 
-        picker.new_resize_protocol(b).into()
+        //picker.new_resize_protocol(b).into();
+        todo!();
     }
 
-    pub fn image(&mut self) -> Option<Arc<dyn StatefulProtocol>> {
-        if let Some(receiver) = &mut self.image_recv {
-            if let Ok(image) = receiver.try_recv() {
-                return Some(image);
-            }
-        }
-
-        if let Some(image_url) = &self.image_url {
-            match &self.image {
-                None => {
-                    let _image = Entry::fetch_image(image_url);
-                    return None;
-                }
-                Some(image) => return Some(image.clone()),
-            }
-        }
-        None
-    }
-
-    pub fn url(&self) -> &str {
-        &self.url
+    pub fn _fetch_and_update_image(&self) {
+        todo!();
     }
 
     pub fn source_name(&self) -> &str {
@@ -105,4 +79,59 @@ pub async fn check_url(url: &str) -> anyhow::Result<String> {
     } else {
         Err(anyhow::anyhow!("Unable to fetch feed."))
     }
+}
+
+pub fn get_image_url_for_rss(entry: &rss::Item) -> Option<String> {
+    if let Some(media) = entry.extensions().get("media") {
+        if let Some(content) = media.get("content") {
+            for extension in content {
+                if extension.name == "media:content" {
+                    if let Some(url) = extension.attrs.get("url") {
+                        return Some(url.to_owned());
+                    }
+                }
+            }
+        }
+    }
+
+    let html_content = entry.content().unwrap_or("");
+    let document = scraper::Html::parse_document(html_content);
+    let img_selector = scraper::Selector::parse("img").unwrap();
+
+    for element in document.select(&img_selector) {
+        if let Some(src) = element.value().attr("src") {
+            return Some(src.to_owned());
+        }
+    }
+
+    None
+}
+
+pub fn get_image_url_for_atom(entry: &atom_syndication::Entry) -> Option<String> {
+    if let Some(media) = entry.extensions().get("media") {
+        if let Some(content) = media.get("content") {
+            for extension in content {
+                if extension.name == "media:content" {
+                    if let Some(url) = extension.attrs.get("url") {
+                        return Some(url.to_owned());
+                    }
+                }
+            }
+        }
+    }
+
+    if let Some(content) = entry.content() {
+        if let Some(html_content) = content.value() {
+            let document = scraper::Html::parse_document(html_content);
+            let img_selector = scraper::Selector::parse("img").unwrap();
+
+            for element in document.select(&img_selector) {
+                if let Some(url) = element.value().attr("src") {
+                    return Some(url.to_owned());
+                }
+            }
+        }
+    }
+
+    None
 }

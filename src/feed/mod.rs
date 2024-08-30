@@ -1,17 +1,16 @@
 pub mod entry;
 
-use chrono::{DateTime, FixedOffset};
-use entry::Entry;
-use ratatui_image::{picker::Picker, protocol::StatefulProtocol};
+use chrono::DateTime;
+use entry::{get_image_url_for_atom, get_image_url_for_rss, Entry};
 use reqwest::Client;
-use std::{default, sync::Arc};
-use tokio::sync::{mpsc, oneshot::Receiver};
+use std::sync::Arc;
+use tokio::sync::mpsc;
 
 pub struct Feed {
-    pub url: Arc<String>,
+    pub _url: Arc<String>,
     pub name: Arc<String>,
     pub entries: Vec<Arc<Entry>>,
-    pub pub_date: Option<chrono::DateTime<::chrono::FixedOffset>>,
+    pub _pub_date: Option<chrono::DateTime<::chrono::FixedOffset>>,
 }
 
 impl Feed {
@@ -47,10 +46,10 @@ impl Feed {
 
 fn get_atom_feed(url: String, atom_feed: atom_syndication::Feed) -> Feed {
     let mut feed = Feed {
-        url: Arc::new(url),
+        _url: Arc::new(url),
         name: Arc::new(atom_feed.title().to_string()),
         entries: Vec::new(),
-        pub_date: Some(atom_feed.updated),
+        _pub_date: Some(atom_feed.updated),
     };
 
     for item in atom_feed.entries {
@@ -73,7 +72,7 @@ fn get_atom_feed(url: String, atom_feed: atom_syndication::Feed) -> Feed {
             description,
             pub_date: item.published,
             source_name: feed.name.clone(),
-            image_url: None,
+            image_url: get_image_url_for_atom(&item),
             ..Default::default()
         };
 
@@ -95,22 +94,25 @@ fn get_rss_feed(channel: rss::Channel, url: String) -> Feed {
     };
 
     let mut feed = Feed {
-        url: Arc::new(url),
+        _url: Arc::new(url),
         name: Arc::new(channel.title.clone()),
         entries: Vec::new(),
-        pub_date,
+        _pub_date: pub_date,
     };
 
     for item in channel.items {
+        let image_url = get_image_url_for_rss(&item);
+
         let entry = Entry {
             title: item.title.unwrap_or("No Title".to_string()),
             url: item.link.unwrap_or("No URL provided".to_string()),
             description: item.description.unwrap_or("No Description".to_string()),
             pub_date: DateTime::parse_from_rfc2822(&item.pub_date.unwrap_or_default()).ok(),
             source_name: feed.name.clone(),
-            image_url: None,
+            image_url,
             ..Default::default()
         };
+        let entry = entry;
 
         feed.entries.push(Arc::new(entry));
     }

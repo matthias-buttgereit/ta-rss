@@ -6,14 +6,11 @@ use crate::{
     tui,
 };
 use clap::{Parser, Subcommand};
-use ratatui_image::protocol::StatefulProtocol;
 use serde::{Deserialize, Serialize};
-use std::{default, sync::Arc};
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
 const CONFIG_FILE_NAME: &str = "feeds.json";
-
-pub type ImageData = (String, Box<dyn StatefulProtocol>);
 
 pub struct App {
     pub running: bool,
@@ -54,6 +51,20 @@ impl App {
     }
 
     pub fn tick(&mut self) {
+        self.receive_feeds();
+
+        if let Some(entry) = &self.popup {
+            if let Some(_image_url) = &entry.image_url {
+                if entry.image.is_none() && entry.image_recv.is_none() {
+                    tokio::spawn(async move {
+                        todo!();
+                    });
+                }
+            }
+        }
+    }
+
+    fn receive_feeds(&mut self) {
         if let Ok(feed) = self.feed_receiver.try_recv() {
             self.feeds.push(feed);
             if self.list_state.selected().is_none() {
