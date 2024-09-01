@@ -52,16 +52,6 @@ impl App {
 
     pub fn tick(&mut self) {
         self.receive_feeds();
-
-        if let Some(entry) = &self.popup {
-            if let Some(_image_url) = &entry.image_url {
-                if entry.image.is_none() && entry.image_recv.is_none() {
-                    tokio::spawn(async move {
-                        todo!();
-                    });
-                }
-            }
-        }
     }
 
     fn receive_feeds(&mut self) {

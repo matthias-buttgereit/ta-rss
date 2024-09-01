@@ -1,18 +1,13 @@
 use std::sync::Arc;
+use tokio::sync::RwLock;
 
-use ratatui_image::{picker::Picker, protocol::StatefulProtocol};
-use tokio::sync::{oneshot::Receiver, RwLock};
-
-#[derive(Default)]
 pub struct Entry {
     pub title: String,
     pub url: String,
     pub description: String,
     pub pub_date: Option<chrono::DateTime<::chrono::FixedOffset>>,
     pub source_name: Arc<String>,
-    pub image_url: Option<String>,
-    pub image: Option<Arc<RwLock<Vec<u8>>>>,
-    pub image_recv: Option<Receiver<Arc<dyn StatefulProtocol>>>,
+    pub image: Option<Arc<RwLock<Image>>>,
 }
 
 impl Entry {
@@ -24,18 +19,30 @@ impl Entry {
         &self.description
     }
 
-    pub fn _fetch_image(_url: &str) -> Arc<dyn StatefulProtocol> {
-        let image_bytes = b"";
-        let _b = image::load_from_memory(image_bytes).unwrap();
-        let mut picker = Picker::new((8, 15));
-        picker.protocol_type = picker.guess_protocol();
+    #[allow(unused)]
+    pub fn get_image(&self) -> anyhow::Result<Arc<RwLock<Image>>> {
+        match &self.image {
+            None => Err(anyhow::anyhow!("Image not available.")),
+            Some(image) => {
+                let image = image.clone();
+                let is_downloading = image.try_read()?.is_downloading.clone();
+                if !*is_downloading.try_read()? {
+                    let mut is_downloading_write = is_downloading.try_write().unwrap();
+                    *is_downloading_write = true;
+                    tokio::spawn(async move {
+                        let mut image = image.write().await;
+                        let url = &image.url;
+                        let response = reqwest::get(url).await.unwrap();
+                        let data = response.bytes().await.unwrap().to_vec();
 
-        //picker.new_resize_protocol(b).into();
-        todo!();
-    }
+                        std::fs::write("output.jpeg", &data).unwrap();
 
-    pub fn _fetch_and_update_image(&self) {
-        todo!();
+                        image.data = data;
+                    });
+                }
+                Ok(self.image.clone().unwrap())
+            }
+        }
     }
 
     pub fn source_name(&self) -> &str {
@@ -60,6 +67,28 @@ impl Eq for Entry {}
 impl Ord for Entry {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         other.pub_date.cmp(&self.pub_date)
+    }
+}
+
+#[allow(unused)]
+pub struct Image {
+    pub url: String,
+    pub data: Vec<u8>,
+    pub is_downloading: Arc<RwLock<bool>>,
+}
+
+impl Image {
+    pub fn new(url: &str) -> Self {
+        Self {
+            url: url.to_owned(),
+            data: Vec::new(),
+            is_downloading: Arc::new(RwLock::new(false)),
+        }
+    }
+
+    #[allow(unused)]
+    pub fn get_image(&mut self) -> Option<&Vec<u8>> {
+        todo!()
     }
 }
 
