@@ -1,5 +1,8 @@
-use std::sync::Arc;
+use ratatui_image::{picker::Picker, protocol::StatefulProtocol};
+use std::{io::Cursor, sync::Arc};
 use tokio::sync::RwLock;
+
+use super::image::Image;
 
 pub struct Entry {
     pub title: String,
@@ -19,7 +22,6 @@ impl Entry {
         &self.description
     }
 
-    #[allow(unused)]
     pub fn get_image(&self) -> anyhow::Result<Arc<RwLock<Image>>> {
         match &self.image {
             None => Err(anyhow::anyhow!("Image not available.")),
@@ -35,9 +37,18 @@ impl Entry {
                         let response = reqwest::get(url).await.unwrap();
                         let data = response.bytes().await.unwrap().to_vec();
 
-                        std::fs::write("output.jpeg", &data).unwrap();
+                        let mut picker = Picker::new((6, 12));
+                        picker.guess_protocol();
+                        let dyn_img = image::ImageReader::new(Cursor::new(&data))
+                            .with_guessed_format()
+                            .unwrap()
+                            .decode()
+                            .unwrap();
 
-                        image.data = data;
+                        let image_data: Box<dyn StatefulProtocol> =
+                            picker.new_resize_protocol(dyn_img);
+
+                        image.data = image_data;
                     });
                 }
                 Ok(self.image.clone().unwrap())
@@ -67,28 +78,6 @@ impl Eq for Entry {}
 impl Ord for Entry {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         other.pub_date.cmp(&self.pub_date)
-    }
-}
-
-#[allow(unused)]
-pub struct Image {
-    pub url: String,
-    pub data: Vec<u8>,
-    pub is_downloading: Arc<RwLock<bool>>,
-}
-
-impl Image {
-    pub fn new(url: &str) -> Self {
-        Self {
-            url: url.to_owned(),
-            data: Vec::new(),
-            is_downloading: Arc::new(RwLock::new(false)),
-        }
-    }
-
-    #[allow(unused)]
-    pub fn get_image(&mut self) -> Option<&Vec<u8>> {
-        todo!()
     }
 }
 

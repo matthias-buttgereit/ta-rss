@@ -1,7 +1,9 @@
 pub mod entry;
+pub mod image;
 
 use chrono::DateTime;
-use entry::{get_image_url_for_atom, get_image_url_for_rss, Entry, Image};
+use entry::{get_image_url_for_atom, get_image_url_for_rss, Entry};
+use image::Image;
 use reqwest::Client;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};

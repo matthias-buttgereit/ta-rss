@@ -9,11 +9,11 @@ pub enum Event {
     Key(KeyEvent),
     Mouse(MouseEvent),
     Paste(String),
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     Resize(u16, u16),
 }
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 #[derive(Debug)]
 pub struct EventHandler {
     sender: mpsc::UnboundedSender<Event>,

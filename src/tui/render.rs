@@ -7,6 +7,7 @@ use ratatui::{
     widgets::{block::Title, Block, BorderType, Clear, List, Paragraph, Wrap},
     Frame,
 };
+use ratatui_image::StatefulImage;
 use std::io::Cursor;
 
 pub fn render(app: &mut App, frame: &mut Frame) {
@@ -81,19 +82,19 @@ fn render_popup(app: &mut App, frame: &mut Frame, area: Rect) {
     };
 
     // image
-    let image_area = Rect::default();
-    let y_coordinate = title_area.y + title_height + 1;
-    let _image = entry.get_image();
-    // if let Ok(a) = entry.get_image() {
-    //     image = a;
-    //     y_coordinate += 10;
-    //     image_area = Rect {
-    //         x: area.x + 2,
-    //         y: y_coordinate,
-    //         width: area.width - 4,
-    //         height: (area.width - 4) / 4, // TODO clamp height to not overflow in short terminals
-    //     };
-    // }
+    let mut image_area = Rect::default();
+    let mut y_coordinate = title_area.y + title_height + 1;
+    let image_result = entry.get_image();
+
+    if image_result.is_ok() {
+        image_area = Rect {
+            x: area.x + 2,
+            y: y_coordinate,
+            width: area.width - 4,
+            height: (area.width - 4) / 4, // TODO clamp height to not overflow in short terminals
+        };
+        y_coordinate += 10;
+    }
 
     // description
     let description = Cursor::new(entry.description());
@@ -126,32 +127,16 @@ fn render_popup(app: &mut App, frame: &mut Frame, area: Rect) {
     frame.render_widget(Clear, popup_area);
     frame.render_widget(block, popup_area);
     frame.render_widget(title, title_area);
-    // if let Some(a) = image {
-    //     println!("image ...\nimage ...");
-    //     // image_area = Rect {
-    //     //     x: area.x + 2,
-    //     //     y: y_coordinate,
-    //     //     width: area.width - 4,
-    //     //     height: (area.width - 4) / 4, // TODO clamp height to not overflow in short terminals
-    //     // };
 
-    //     let mut picker = Picker::new((8, 12));
-    //     // Guess the protocol.
-    //     picker.guess_protocol();
+    // render image
+    if let Ok(image_pointer) = image_result {
+        if let Ok(image) = image_pointer.try_read() {
+            let mut image = image.data.clone();
+            let sf_image = StatefulImage::new(None);
+            frame.render_stateful_widget(sf_image, image_area, &mut image);
+        }
+    }
 
-    //     // Load an image with the image crate.
-    //     let dyn_img = image::ImageReader::new(Cursor::new(data.clone()))
-    //         .with_guessed_format()
-    //         .unwrap()
-    //         .decode()
-    //         .unwrap();
-
-    //     // Create the Protocol which will be used by the widget.
-    //     let image_data: Box<dyn StatefulProtocol> = picker.new_resize_protocol(dyn_img);
-    //     let image = &mut a.clone();
-    //     let sf_image = StatefulImage::new(None);
-    //     frame.render_stateful_widget(sf_image, image_area, image);
-    // }
     frame.render_widget(
         description,
         Rect {
