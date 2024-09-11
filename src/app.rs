@@ -1,12 +1,16 @@
-use crate::feed::{check_url, Entry, Feed};
-use ratatui_image::protocol::StatefulProtocol;
+use crate::{
+    feed::{
+        entry::{check_url, Entry},
+        Feed,
+    },
+    tui,
+};
+use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
 const CONFIG_FILE_NAME: &str = "feeds.json";
-
-pub type ImageData = (String, Box<dyn StatefulProtocol>);
 
 pub struct App {
     pub running: bool,
@@ -16,6 +20,7 @@ pub struct App {
     pub all_entries: Vec<Arc<Entry>>,
     pub list_state: ratatui::widgets::ListState,
     feed_receiver: mpsc::Receiver<Feed>,
+    pub popup_scroll_offset: u16,
 }
 
 impl App {
@@ -23,16 +28,22 @@ impl App {
         let urls_list = load_config().unwrap_or_default();
         let (tx, rx) = mpsc::channel(urls_list.len().max(1));
         Feed::fetch_and_parse_feeds(&urls_list, tx);
+        let feed_urls = load_config().unwrap_or_default();
 
         Self {
             running: true,
-            feed_urls: load_config().unwrap_or_default(),
+            feed_urls,
             popup: None,
             feeds: Vec::new(),
             all_entries: Vec::new(),
             list_state: ratatui::widgets::ListState::default(),
             feed_receiver: rx,
+            popup_scroll_offset: 0,
         }
+    }
+
+    pub async fn start_tui(app: Self) -> anyhow::Result<()> {
+        tui::start_tui(app).await
     }
 
     pub fn quit(&mut self) {
@@ -40,6 +51,10 @@ impl App {
     }
 
     pub fn tick(&mut self) {
+        self.receive_feeds();
+    }
+
+    fn receive_feeds(&mut self) {
         if let Ok(feed) = self.feed_receiver.try_recv() {
             self.feeds.push(feed);
             if self.list_state.selected().is_none() {
@@ -79,6 +94,7 @@ impl App {
             self.list_state.select(Some(new_index));
 
             if self.popup.is_some() {
+                self.popup_scroll_offset = 0;
                 self.popup = Some(self.all_entries[new_index].clone());
             }
         }
@@ -95,6 +111,7 @@ impl App {
             self.list_state.select(Some(new_index));
 
             if self.popup.is_some() {
+                self.popup_scroll_offset = 0;
                 self.popup = Some(self.all_entries[new_index].clone());
             }
         }
@@ -130,10 +147,23 @@ impl App {
     }
 
     pub(crate) fn toggle_popup(&mut self) {
+        self.popup_scroll_offset = 0;
         if self.popup.is_some() {
             self.popup = None;
         } else if let Some(index) = self.list_state.selected() {
             self.popup = Some(self.all_entries[index].clone());
+        }
+    }
+
+    pub(crate) fn scroll_down(&mut self) {
+        if self.popup.is_some() {
+            self.popup_scroll_offset += 1;
+        }
+    }
+
+    pub(crate) fn scroll_up(&mut self) {
+        if self.popup.is_some() && self.popup_scroll_offset > 0 {
+            self.popup_scroll_offset -= 1;
         }
     }
 }
@@ -156,4 +186,19 @@ fn save_config(urls: &[String]) -> anyhow::Result<()> {
     let config_as_json = serde_json::to_string_pretty(&current_config)?;
     std::fs::write(CONFIG_FILE_NAME, config_as_json)?;
     Ok(())
+}
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+#[command(propagate_version = true)]
+pub struct Cli {
+    #[command(subcommand)]
+    pub command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+pub enum Commands {
+    Add { url: String },
+    Remove { url: String },
+    List,
 }
