@@ -1,7 +1,12 @@
 pub mod render;
 
-use std::io;
-
+use crate::{
+    app::App,
+    events::{
+        event::Event,
+        handler::{handle_key_events, handle_paste_event, Handler},
+    },
+};
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
@@ -10,26 +15,19 @@ use ratatui::{
     prelude::{Backend, CrosstermBackend},
     Terminal,
 };
+use std::io;
 
-use crate::{
-    app::App,
-    events::{
-        event::{Event, EventHandler},
-        handler::{handle_key_events, handle_paste_event},
-    },
-};
-
-pub async fn start_tui(mut app: App) -> anyhow::Result<()> {
+pub async fn start(mut app: App) -> anyhow::Result<()> {
     let backend = CrosstermBackend::new(io::stdout());
     let terminal = Terminal::new(backend)?;
-    let events = EventHandler::new(20);
+    let events = Handler::new(20);
     let mut tui = Tui::new(terminal, events);
     tui.init()?;
 
     while app.running {
         match tui.events.next().await? {
             Event::Tick => app.tick(),
-            Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
+            Event::Key(key_event) => handle_key_events(key_event, &mut app),
             Event::Mouse(mouse_event) => {
                 if mouse_event.kind == crossterm::event::MouseEventKind::ScrollDown {
                     app.scroll_down();
@@ -52,11 +50,11 @@ pub async fn start_tui(mut app: App) -> anyhow::Result<()> {
 #[derive(Debug)]
 pub struct Tui<B: Backend> {
     terminal: Terminal<B>,
-    pub events: EventHandler,
+    pub events: Handler,
 }
 
 impl<B: Backend> Tui<B> {
-    pub fn new(terminal: Terminal<B>, events: EventHandler) -> Self {
+    pub fn new(terminal: Terminal<B>, events: Handler) -> Self {
         Self { terminal, events }
     }
 

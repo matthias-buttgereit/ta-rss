@@ -73,7 +73,7 @@ fn render_popup(app: &mut App, frame: &mut Frame, area: Rect) {
 
     // title
     let title = Paragraph::new(entry.title()).wrap(Wrap { trim: true });
-    let title_height = title.line_count(content_width) as u16;
+    let title_height = u16::try_from(title.line_count(content_width)).unwrap();
     let title_area = Rect {
         x: area.x + 2,
         y: area.y + 2,
@@ -100,7 +100,7 @@ fn render_popup(app: &mut App, frame: &mut Frame, area: Rect) {
     let description = Cursor::new(entry.description());
     let description = html2text::from_read(description, content_width as usize);
     let description = Paragraph::new(description);
-    let description_height = description.line_count(content_width) as u16;
+    let description_height = u16::try_from(description.line_count(content_width)).unwrap();
     let max_description_height = area.height - y_coordinate - 2;
     let max_offset = description_height.saturating_sub(max_description_height);
     if app.popup_scroll_offset > max_offset {
