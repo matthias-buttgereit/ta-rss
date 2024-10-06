@@ -2,10 +2,7 @@ pub mod render;
 
 use crate::{
     app::App,
-    events::{
-        event::Event,
-        handler::{handle_key_events, handle_paste_event, Handler},
-    },
+    events::{event::Event, handler::Handler},
 };
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
@@ -16,36 +13,6 @@ use ratatui::{
     Terminal,
 };
 use std::io;
-
-pub async fn start(mut app: App) -> anyhow::Result<()> {
-    let backend = CrosstermBackend::new(io::stdout());
-    let terminal = Terminal::new(backend)?;
-    let events = Handler::new(20);
-    let mut tui = Tui::new(terminal, events);
-    tui.init()?;
-
-    while app.running {
-        match tui.events.next().await? {
-            Event::Tick => app.tick(),
-            Event::Key(key_event) => handle_key_events(key_event, &mut app),
-            Event::Mouse(mouse_event) => {
-                if mouse_event.kind == crossterm::event::MouseEventKind::ScrollDown {
-                    app.scroll_down();
-                }
-                if mouse_event.kind == crossterm::event::MouseEventKind::ScrollUp {
-                    app.scroll_up();
-                }
-            }
-            Event::Resize(_, _) => {}
-            Event::Paste(text) => handle_paste_event(&mut app, &text)?,
-        }
-
-        tui.draw(&mut app)?;
-    }
-
-    tui.exit()?;
-    Ok(())
-}
 
 #[derive(Debug)]
 pub struct Tui<B: Backend> {
@@ -88,4 +55,27 @@ impl<B: Backend> Tui<B> {
         self.terminal.show_cursor()?;
         Ok(())
     }
+}
+
+pub async fn start(app: &mut App) -> anyhow::Result<()> {
+    let backend = CrosstermBackend::new(io::stdout());
+    let terminal = Terminal::new(backend)?;
+    let events = Handler::new(20);
+    let mut tui = Tui::new(terminal, events);
+    tui.init()?;
+
+    while app.running {
+        match tui.events.next().await? {
+            Event::Tick => app.tick(),
+            Event::Key(key_event) => app.handle_key_events(key_event),
+            Event::Mouse(mouse_event) => app.handle_mouse_event(mouse_event),
+            Event::Resize(_, _) => {}
+            Event::Paste(text) => app.handle_paste_event(&text),
+        }
+
+        tui.draw(app)?;
+    }
+
+    tui.exit()?;
+    Ok(())
 }
