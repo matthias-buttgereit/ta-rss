@@ -1,3 +1,5 @@
+pub mod popup;
+
 use crate::{
     feed::{
         entry::{check_url, Entry},
@@ -7,6 +9,7 @@ use crate::{
 };
 use clap::{Parser, Subcommand};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use popup::Popup;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -21,29 +24,6 @@ pub struct App {
     pub all_entries: Vec<Arc<Entry>>,
     pub list_state: ratatui::widgets::ListState,
     feed_channel: (mpsc::Sender<Feed>, mpsc::Receiver<Feed>),
-}
-
-pub struct Popup {
-    pub entry: Arc<Entry>,
-    pub scroll_offset: u16,
-}
-impl Popup {
-    fn new(entry: Arc<Entry>) -> Self {
-        Self {
-            entry,
-            scroll_offset: 0,
-        }
-    }
-
-    fn scroll_down(&mut self) {
-        self.scroll_offset += 1;
-    }
-
-    fn scroll_up(&mut self) {
-        if self.scroll_offset > 0 {
-            self.scroll_offset -= 1;
-        }
-    }
 }
 
 impl App {

@@ -3,7 +3,7 @@ use futures::{FutureExt, StreamExt};
 use std::time::Duration;
 use tokio::sync::mpsc;
 
-use crate::events::Event;
+use crate::event::Event;
 
 #[derive(Debug)]
 pub struct Handler {

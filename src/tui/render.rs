@@ -1,4 +1,4 @@
-use crate::app::{App, Popup};
+use crate::app::{popup::Popup, App};
 use chrono::Utc;
 use ratatui::{
     layout::{Alignment, Rect},

@@ -1,5 +1,5 @@
 mod app;
-mod events;
+mod event;
 mod feed;
 mod tui;
 
