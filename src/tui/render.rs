@@ -1,4 +1,4 @@
-use crate::app::App;
+use crate::app::{App, Popup};
 use chrono::Utc;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -34,14 +34,16 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         );
     }
 
-    if app.popup.is_some() && window_area.height > 10 {
-        let popup_area = Rect {
-            x: (window_area.width / 2) + window_area.width % 2,
-            y: window_area.y,
-            width: (window_area.width / 2),
-            height: window_area.height,
-        };
-        render_popup(app, frame, popup_area);
+    if let Some(popup) = &app.popup {
+        if window_area.height > 10 {
+            let popup_area = Rect {
+                x: (window_area.width / 2) + window_area.width % 2,
+                y: window_area.y,
+                width: (window_area.width / 2),
+                height: window_area.height,
+            };
+            render_popup(popup, frame, popup_area);
+        }
     }
 }
 
@@ -59,20 +61,19 @@ fn render_keybindings(_app: &mut App, frame: &mut Frame, area: Rect) {
     frame.render_widget(Line::raw(keybindings), area);
 }
 
-fn render_popup(app: &mut App, frame: &mut Frame, area: Rect) {
-    let Some(entry) = &app.popup else { return };
+fn render_popup(popup: &Popup, frame: &mut Frame, area: Rect) {
     let content_width = area.width - 4;
 
-    let date = get_age(entry.pub_date);
+    let date = get_age(popup.entry.pub_date);
     let source = {
-        let mut source = entry.source_name().to_owned();
+        let mut source = popup.entry.source_name().to_owned();
         let source_len = area.width as usize - (date.len() + 4);
         source.truncate(source_len);
         source
     };
 
     // title
-    let title = Paragraph::new(entry.title()).wrap(Wrap { trim: true });
+    let title = Paragraph::new(popup.entry.title()).wrap(Wrap { trim: true });
     let title_height = u16::try_from(title.line_count(content_width)).unwrap();
     let title_area = Rect {
         x: area.x + 2,
@@ -84,7 +85,7 @@ fn render_popup(app: &mut App, frame: &mut Frame, area: Rect) {
     // image
     let mut image_area = Rect::default();
     let mut y_coordinate = title_area.y + title_height + 1;
-    let image_result = entry.get_image();
+    let image_result = popup.entry.get_image();
 
     if image_result.is_ok() {
         image_area = Rect {
@@ -97,16 +98,16 @@ fn render_popup(app: &mut App, frame: &mut Frame, area: Rect) {
     }
 
     // description
-    let description = Cursor::new(entry.description());
+    let description = Cursor::new(popup.entry.description());
     let description = html2text::from_read(description, content_width as usize);
     let description = Paragraph::new(description);
     let description_height = u16::try_from(description.line_count(content_width)).unwrap();
     let max_description_height = area.height - y_coordinate - 2;
-    let max_offset = description_height.saturating_sub(max_description_height);
-    if app.popup_scroll_offset > max_offset {
-        app.popup_scroll_offset = max_offset;
-    }
-    let description = description.scroll((app.popup_scroll_offset, 0));
+    // let max_offset = description_height.saturating_sub(max_description_height);
+    // if popup.scroll_offset > max_offset {
+    //     popup.scroll_offset = max_offset;
+    // }
+    let description = description.scroll((popup.scroll_offset, 0));
     let description_area = Rect {
         x: area.x + 2,
         y: y_coordinate,

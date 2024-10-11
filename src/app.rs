@@ -16,12 +16,34 @@ const CONFIG_FILE_NAME: &str = "feeds.json";
 pub struct App {
     pub running: bool,
     feed_urls: Vec<String>,
-    pub popup: Option<Arc<Entry>>,
+    pub popup: Option<Popup>,
     pub feeds: Vec<Feed>,
     pub all_entries: Vec<Arc<Entry>>,
     pub list_state: ratatui::widgets::ListState,
     feed_channel: (mpsc::Sender<Feed>, mpsc::Receiver<Feed>),
-    pub popup_scroll_offset: u16,
+}
+
+pub struct Popup {
+    pub entry: Arc<Entry>,
+    pub scroll_offset: u16,
+}
+impl Popup {
+    fn new(entry: Arc<Entry>) -> Self {
+        Self {
+            entry,
+            scroll_offset: 0,
+        }
+    }
+
+    fn scroll_down(&mut self) {
+        self.scroll_offset += 1;
+    }
+
+    fn scroll_up(&mut self) {
+        if self.scroll_offset > 0 {
+            self.scroll_offset -= 1;
+        }
+    }
 }
 
 impl App {
@@ -37,7 +59,6 @@ impl App {
             all_entries: Vec::new(),
             list_state: ratatui::widgets::ListState::default(),
             feed_channel,
-            popup_scroll_offset: 0,
         }
     }
 
@@ -92,10 +113,8 @@ impl App {
             };
 
             self.list_state.select(Some(new_index));
-
             if self.popup.is_some() {
-                self.popup_scroll_offset = 0;
-                self.popup = Some(self.all_entries[new_index].clone());
+                self.popup = Some(Popup::new(self.all_entries[new_index].clone()));
             }
         }
     }
@@ -109,10 +128,8 @@ impl App {
             };
 
             self.list_state.select(Some(new_index));
-
             if self.popup.is_some() {
-                self.popup_scroll_offset = 0;
-                self.popup = Some(self.all_entries[new_index].clone());
+                self.popup = Some(Popup::new(self.all_entries[new_index].clone()));
             }
         }
     }
@@ -147,11 +164,10 @@ impl App {
     }
 
     fn toggle_popup(&mut self) {
-        self.popup_scroll_offset = 0;
         if self.popup.is_some() {
             self.popup = None;
         } else if let Some(index) = self.list_state.selected() {
-            self.popup = Some(self.all_entries[index].clone());
+            self.popup = Some(Popup::new(self.all_entries[index].clone()));
         }
     }
 }
@@ -169,8 +185,8 @@ impl App {
                 self.toggle_popup();
             }
             KeyCode::Char('o' | 'O') => {
-                if let Some(entry) = &self.popup {
-                    let url = &entry.url;
+                if let Some(popup) = &self.popup {
+                    let url = &popup.entry.url;
                     let _open_error = open::that_in_background(url);
                 };
             }
@@ -188,15 +204,13 @@ impl App {
     }
 
     pub fn handle_mouse_event(&mut self, mouse_event: crossterm::event::MouseEvent) {
-        if mouse_event.kind == crossterm::event::MouseEventKind::ScrollDown && self.popup.is_some()
-        {
-            self.popup_scroll_offset += 1;
-        }
-        if mouse_event.kind == crossterm::event::MouseEventKind::ScrollUp
-            && self.popup.is_some()
-            && self.popup_scroll_offset > 0
-        {
-            self.popup_scroll_offset -= 1;
+        if let Some(popup) = &mut self.popup {
+            if mouse_event.kind == crossterm::event::MouseEventKind::ScrollDown {
+                popup.scroll_down();
+            }
+            if mouse_event.kind == crossterm::event::MouseEventKind::ScrollUp {
+                popup.scroll_up();
+            }
         }
     }
 

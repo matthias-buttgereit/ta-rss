@@ -1,9 +1,9 @@
-use super::event::Event;
-
 use crossterm::event::{Event as CrosstermEvent, KeyEventKind};
 use futures::{FutureExt, StreamExt};
 use std::time::Duration;
 use tokio::sync::mpsc;
+
+use crate::events::Event;
 
 #[derive(Debug)]
 pub struct Handler {

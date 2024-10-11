@@ -1,3 +1,5 @@
+pub mod handler;
+
 use crossterm::event::{KeyEvent, MouseEvent};
 
 #[derive(Clone, Debug)]

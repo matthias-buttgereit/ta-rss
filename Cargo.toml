@@ -12,14 +12,14 @@ unsafe_code = "forbid"
 anyhow = "1.0.89"
 atom_syndication = "0.12.4"
 chrono = "0.4.38"
-clap = { version = "4.5.19", features = ["derive"] }
+clap = { version = "4.5.20", features = ["derive"] }
 crossterm = { version = "0.28.1", features = ["event-stream"] }
 futures = "0.3.31"
 html2text = "0.12.6"
 image = "0.25.2"
 open = "5.3.0"
 ratatui = { version = "0.28.1", features = ["unstable-rendered-line-info"] }
-ratatui-image = { version = "1.0.5", features = ["crossterm"] }
+ratatui-image = { version = "2.0.1", features = ["crossterm"] }
 reqwest = "0.12.8"
 rss = { version = "2.0.9", features = ["atom", "atom_syndication"] }
 scraper = "0.20.0"
