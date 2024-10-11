@@ -1,9 +1,7 @@
 mod app;
 mod events;
 mod feed;
-mod network;
 mod tui;
-mod utils;
 
 use app::{App, Cli};
 use clap::Parser;
