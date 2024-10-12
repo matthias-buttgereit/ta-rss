@@ -2,7 +2,10 @@ pub mod render;
 
 use crate::{
     app::App,
-    event::{handler::Handler, Event},
+    event::{
+        handler::{Handler, InputHandler},
+        Event,
+    },
 };
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},

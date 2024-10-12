@@ -3,7 +3,7 @@ mod event;
 mod feed;
 mod tui;
 
-use app::{App, Cli};
+use app::{cli::Cli, App};
 use clap::Parser;
 
 #[tokio::main]

@@ -75,3 +75,9 @@ impl Handler {
             .ok_or(anyhow::anyhow!("Failed to receive event"))
     }
 }
+
+pub trait InputHandler {
+    fn handle_key_events(&mut self, key_event: crossterm::event::KeyEvent);
+    fn handle_mouse_event(&mut self, mouse_event: crossterm::event::MouseEvent);
+    fn handle_paste_event(&mut self, text: &str);
+}
