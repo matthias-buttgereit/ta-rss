@@ -7,7 +7,6 @@ use ratatui::{
     widgets::{block::Title, Block, BorderType, Clear, List, Paragraph, Wrap},
     Frame,
 };
-use ratatui_image::StatefulImage;
 use std::io::Cursor;
 
 pub fn render(app: &mut App, frame: &mut Frame) {
@@ -120,6 +119,7 @@ fn render_popup(app: &mut App, frame: &mut Frame, area: Rect) {
         ..area
     };
 
+    #[expect(deprecated)]
     let block = Block::bordered()
         .title(source)
         .title(Title::from(date).alignment(Alignment::Right));
@@ -129,13 +129,13 @@ fn render_popup(app: &mut App, frame: &mut Frame, area: Rect) {
     frame.render_widget(title, title_area);
 
     // render image
-    if let Ok(image_pointer) = image_result {
-        if let Ok(image) = image_pointer.try_read() {
-            let mut image = image.data.clone();
-            let sf_image = StatefulImage::new(None);
-            frame.render_stateful_widget(sf_image, image_area, &mut image);
-        }
-    }
+    // if let Ok(image_pointer) = image_result {
+    //     if let Ok(image) = image_pointer.try_read() {
+    //         let mut image = image.data.clone();
+    //         let sf_image = StatefulImage::new(None);
+    //         frame.render_stateful_widget(sf_image, image_area, &mut image);
+    //     }
+    // }
 
     frame.render_widget(
         description,

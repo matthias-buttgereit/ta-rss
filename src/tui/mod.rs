@@ -5,7 +5,7 @@ use crate::{
     events::event::{Event, EventHandler},
 };
 
-pub async fn start_tui(mut app: App) -> anyhow::Result<()> {
+pub async fn start(mut app: App) -> anyhow::Result<()> {
     let mut tui = ratatui::init();
     let mut events = EventHandler::new(60);
 
