@@ -24,10 +24,10 @@ pub struct App {
 }
 
 impl App {
-    pub async fn new() -> Self {
+    pub fn new() -> Self {
         let urls_list = load_config().unwrap_or_default();
         let (tx, rx) = mpsc::channel(urls_list.len().max(1));
-        Feed::fetch_and_parse_feeds(&urls_list, tx);
+        Feed::fetch_and_parse_feeds(&urls_list, &tx);
         let feed_urls = load_config().unwrap_or_default();
 
         Self {
@@ -43,7 +43,7 @@ impl App {
     }
 
     pub async fn start_tui(app: Self) -> anyhow::Result<()> {
-        tui::start_tui(app).await
+        tui::start(app).await
     }
 
     pub fn quit(&mut self) {
