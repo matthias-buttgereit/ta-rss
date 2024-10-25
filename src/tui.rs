@@ -2,7 +2,7 @@ pub mod render;
 
 use crate::{
     app::App,
-    events::event::{Event, EventHandler},
+    events::{Event, EventHandler},
 };
 
 pub async fn start(mut app: App) -> anyhow::Result<()> {
