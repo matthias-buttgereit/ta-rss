@@ -129,6 +129,7 @@ fn render_popup(popup: &mut Popup, frame: &mut Frame, area: Rect) {
         ..area
     };
 
+    #[expect(deprecated)]
     let block = Block::bordered()
         .title(source)
         .title(Title::from(date).alignment(Alignment::Right));
