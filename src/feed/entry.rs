@@ -1,8 +1,4 @@
-use ratatui_image::{picker::Picker, protocol::StatefulProtocol};
-use std::{io::Cursor, sync::Arc};
-use tokio::sync::RwLock;
-
-use super::image::Image;
+use std::sync::Arc;
 
 pub struct Entry {
     pub title: String,
@@ -10,7 +6,7 @@ pub struct Entry {
     pub description: String,
     pub pub_date: Option<chrono::DateTime<::chrono::FixedOffset>>,
     pub source_name: Arc<String>,
-    pub image: Option<Arc<RwLock<Image>>>,
+    pub image_url: Option<String>,
 }
 
 impl Entry {
@@ -22,39 +18,39 @@ impl Entry {
         &self.description
     }
 
-    pub fn get_image(&self) -> anyhow::Result<Arc<RwLock<Image>>> {
-        match &self.image {
-            None => Err(anyhow::anyhow!("Image not available.")),
-            Some(image) => {
-                let image = image.clone();
-                let is_downloading = image.try_read()?.is_downloading.clone();
-                if !*is_downloading.try_read()? {
-                    let mut is_downloading_write = is_downloading.try_write().unwrap();
-                    *is_downloading_write = true;
-                    tokio::spawn(async move {
-                        let mut image = image.write().await;
-                        let url = &image.url;
-                        let response = reqwest::get(url).await.unwrap();
-                        let data = response.bytes().await.unwrap().to_vec();
+    // pub fn get_image(&self) -> anyhow::Result<Arc<RwLock<Image>>> {
+    //     match &self.image {
+    //         None => Err(anyhow::anyhow!("Image not available.")),
+    //         Some(image) => {
+    //             let image = image.clone();
+    //             let is_downloading = image.try_read()?.is_downloading.clone();
+    //             if !*is_downloading.try_read()? {
+    //                 let mut is_downloading_write = is_downloading.try_write().unwrap();
+    //                 *is_downloading_write = true;
+    //                 tokio::spawn(async move {
+    //                     let mut image = image.write().await;
+    //                     let url = &image.url;
+    //                     let response = reqwest::get(url).await.unwrap();
+    //                     let data = response.bytes().await.unwrap().to_vec();
 
-                        let mut picker = Picker::new((6, 12));
-                        picker.guess_protocol();
-                        let dyn_img = image::ImageReader::new(Cursor::new(&data))
-                            .with_guessed_format()
-                            .unwrap()
-                            .decode()
-                            .unwrap();
+    //                     let mut picker = Picker::new((6, 12));
+    //                     picker.guess_protocol();
+    //                     let dyn_img = image::ImageReader::new(Cursor::new(&data))
+    //                         .with_guessed_format()
+    //                         .unwrap()
+    //                         .decode()
+    //                         .unwrap();
 
-                        let image_data: Box<dyn StatefulProtocol> =
-                            picker.new_resize_protocol(dyn_img);
+    //                     let image_data: Box<dyn StatefulProtocol> =
+    //                         picker.new_resize_protocol(dyn_img);
 
-                        image.data = image_data;
-                    });
-                }
-                Ok(self.image.clone().unwrap())
-            }
-        }
-    }
+    //                     image.data = image_data;
+    //                 });
+    //             }
+    //             Ok(self.image.clone().unwrap())
+    //         }
+    //     }
+    // }
 
     pub fn source_name(&self) -> &str {
         &self.source_name

@@ -102,8 +102,8 @@ impl EventHandler {
                 app.toggle_popup();
             }
             KeyCode::Char('o' | 'O') => {
-                if let Some(entry) = &app.popup {
-                    let url = &entry.url;
+                if let Some(popup) = &app.popup {
+                    let url = &popup.entry.url;
                     let _open_error = open::that_in_background(url);
                 };
             }

@@ -6,16 +6,46 @@ use crate::{
     tui,
 };
 use clap::{Parser, Subcommand};
+use ratatui_image::thread::ThreadProtocol;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
 const CONFIG_FILE_NAME: &str = "feeds.json";
 
+pub struct Popup {
+    pub entry: Arc<Entry>,
+    pub scroll_offset: u16,
+    pub image: Option<ThreadProtocol>,
+}
+
+impl Popup {
+    pub fn new(entry: Arc<Entry>) -> Self {
+        if let Some(_image_url) = &entry.image_url {
+            // let image = fetch_image(image_url);
+            Self {
+                entry,
+                scroll_offset: 0,
+                image: None,
+            }
+        } else {
+            Self {
+                entry,
+                scroll_offset: 0,
+                image: None,
+            }
+        }
+    }
+}
+
+fn _fetch_image(image_url: &str) -> Arc<ThreadProtocol> {
+    todo!("fetch image from url: {image_url}")
+}
+
 pub struct App {
     pub running: bool,
     feed_urls: Vec<String>,
-    pub popup: Option<Arc<Entry>>,
+    pub popup: Option<Popup>,
     pub feeds: Vec<Feed>,
     pub all_entries: Vec<Arc<Entry>>,
     pub list_state: ratatui::widgets::ListState,
@@ -92,10 +122,9 @@ impl App {
             };
 
             self.list_state.select(Some(new_index));
-
             if self.popup.is_some() {
                 self.popup_scroll_offset = 0;
-                self.popup = Some(self.all_entries[new_index].clone());
+                self.popup = Some(Popup::new(self.all_entries[new_index].clone()));
             }
         }
     }
@@ -109,10 +138,9 @@ impl App {
             };
 
             self.list_state.select(Some(new_index));
-
             if self.popup.is_some() {
                 self.popup_scroll_offset = 0;
-                self.popup = Some(self.all_entries[new_index].clone());
+                self.popup = Some(Popup::new(self.all_entries[new_index].clone()));
             }
         }
     }
@@ -151,7 +179,7 @@ impl App {
         if self.popup.is_some() {
             self.popup = None;
         } else if let Some(index) = self.list_state.selected() {
-            self.popup = Some(self.all_entries[index].clone());
+            self.popup = Some(Popup::new(self.all_entries[index].clone()));
         }
     }
 

@@ -18,7 +18,7 @@ futures = "0.3.31"
 html2text = "0.13.2"
 image = "0.25.4"
 open = "5.3"
-ratatui = { version = "0.29.0", features = ["unstable-rendered-line-info"] }
+ratatui = { version = "0.28.1", features = ["unstable-rendered-line-info"] }
 ratatui-image = { version = "2.0.1", features = ["crossterm"] }
 reqwest = "0.12.8"
 rss = { version = "2.0", features = ["atom", "atom_syndication"] }

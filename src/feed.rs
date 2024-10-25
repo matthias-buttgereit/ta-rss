@@ -1,12 +1,10 @@
 pub mod entry;
-pub mod image;
 
 use chrono::DateTime;
 use entry::{get_image_url_for_atom, get_image_url_for_rss, Entry};
-use image::Image;
 use reqwest::Client;
 use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::mpsc;
 
 pub struct Feed {
     pub _url: Arc<String>,
@@ -69,7 +67,6 @@ fn get_atom_feed(url: String, atom_feed: atom_syndication::Feed) -> Feed {
         };
 
         let image_url = get_image_url_for_atom(&item);
-        let image = image_url.map(|url| Arc::new(RwLock::new(Image::new(&url))));
 
         let entry = Entry {
             title: item.title.to_string(),
@@ -77,7 +74,7 @@ fn get_atom_feed(url: String, atom_feed: atom_syndication::Feed) -> Feed {
             description,
             pub_date: item.published,
             source_name: feed.name.clone(),
-            image,
+            image_url,
         };
 
         feed.entries.push(Arc::new(entry));
@@ -106,7 +103,6 @@ fn get_rss_feed(channel: rss::Channel, url: String) -> Feed {
 
     for item in channel.items {
         let image_url = get_image_url_for_rss(&item);
-        let image = image_url.map(|url| Arc::new(RwLock::new(Image::new(&url))));
 
         let entry = Entry {
             title: item.title.unwrap_or("No Title".to_string()),
@@ -114,7 +110,7 @@ fn get_rss_feed(channel: rss::Channel, url: String) -> Feed {
             description: item.description.unwrap_or("No Description".to_string()),
             pub_date: DateTime::parse_from_rfc2822(&item.pub_date.unwrap_or_default()).ok(),
             source_name: feed.name.clone(),
-            image,
+            image_url,
         };
 
         feed.entries.push(Arc::new(entry));
