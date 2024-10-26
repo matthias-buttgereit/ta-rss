@@ -8,14 +8,16 @@ use crate::{
         entry::{check_url, Entry},
         Feed,
     },
-    tui::{self},
+    tui,
 };
 use cli::Commands;
 use config::Config;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use fxhash::FxHashMap;
 use popup::Popup;
+use ratatui_image::{protocol::StatefulProtocol, thread::ThreadImage};
 use std::sync::Arc;
-use tokio::sync::mpsc;
+use tokio::sync::mpsc::{self, Receiver, Sender};
 
 const CONFIG_FILE_NAME: &str = "feeds.json";
 
@@ -27,12 +29,18 @@ pub struct App {
     pub all_entries: Vec<Arc<Entry>>,
     pub list_state: ratatui::widgets::ListState,
     feed_channel: (mpsc::Sender<Feed>, mpsc::Receiver<Feed>),
+    pub image_cache: FxHashMap<String, Box<dyn StatefulProtocol>>,
+    image_channel: (
+        Sender<(String, ThreadImage)>,
+        Receiver<(String, ThreadImage)>,
+    ),
 }
 
 impl App {
     pub fn new() -> Self {
         let feed_urls = Config::load().unwrap_or_default();
         let feed_channel = mpsc::channel(feed_urls.len().max(1));
+        let image_channel = mpsc::channel(10);
 
         Self {
             running: true,
@@ -42,6 +50,8 @@ impl App {
             all_entries: Vec::new(),
             list_state: ratatui::widgets::ListState::default(),
             feed_channel,
+            image_cache: FxHashMap::default(),
+            image_channel,
         }
     }
 
@@ -56,6 +66,7 @@ impl App {
 
     pub fn tick(&mut self) {
         self.receive_feeds();
+        self.receive_images();
     }
 
     fn receive_feeds(&mut self) {
@@ -167,6 +178,18 @@ impl App {
             Commands::List => self.print_feeds(),
         }
         Ok(())
+    }
+
+    fn check_for_image(&mut self) {
+        if let Some(popup) = &self.popup.as_mut() {
+            if let Some(image_url) = &popup.entry.image_url {
+                todo!("Check if image is already cached, if not download it.");
+            }
+        }
+    }
+
+    fn receive_images(&mut self) {
+        if let Ok(image) = self.image_channel.1.try_recv() {}
     }
 }
 

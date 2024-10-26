@@ -7,10 +7,17 @@ use ratatui::{
     widgets::{block::Title, Block, BorderType, Clear, List, Paragraph, Wrap},
     Frame,
 };
-use ratatui_image::StatefulImage;
 use std::io::Cursor;
 
 pub fn render(app: &mut App, frame: &mut Frame) {
+    let right_side = Rect {
+        x: 0,
+        y: 0,
+        width: frame.area().width,
+        height: frame.area().height,
+    };
+    frame.render_widget(Clear, right_side);
+
     let window_area = frame.area();
     let main_area = Rect {
         height: window_area.height - 1,
@@ -83,23 +90,23 @@ fn render_popup(popup: &Popup, frame: &mut Frame, area: Rect) {
     };
 
     // image
-    let mut image_area = Rect::default();
-    let mut y_coordinate = title_area.y + title_height + 1;
-    let image_result = popup.entry.get_image();
+    // let mut image_area = Rect::default();
+    let y_coordinate = title_area.y + title_height + 1;
+    // let image_result = &popup.entry.image_url;
 
-    if image_result.is_ok() {
-        image_area = Rect {
-            x: area.x + 2,
-            y: y_coordinate,
-            width: area.width - 4,
-            height: (area.width - 4) / 4, // TODO clamp height to not overflow in short terminals
-        };
-        y_coordinate += 10;
-    }
+    // if image_result.is_some() {
+    //     image_area = Rect {
+    //         x: area.x + 2,
+    //         y: y_coordinate,
+    //         width: area.width - 4,
+    //         height: (area.width - 4) / 4, // TODO clamp height to not overflow in short terminals
+    //     };
+    //     y_coordinate += 10;
+    // }
 
     // description
     let description = Cursor::new(popup.entry.description());
-    let description = html2text::from_read(description, content_width as usize);
+    let description = html2text::from_read(description, content_width as usize).unwrap();
     let description = Paragraph::new(description);
     let description_height = u16::try_from(description.line_count(content_width)).unwrap();
     let max_description_height = area.height - y_coordinate - 2;
@@ -115,7 +122,8 @@ fn render_popup(popup: &Popup, frame: &mut Frame, area: Rect) {
         height: description_height.min(max_description_height),
     };
 
-    let popup_height = title_area.height + description_area.height + image_area.height + 4;
+    let popup_height = title_area.height + description_area.height + 4;
+    // let popup_height = popup_height + image_height;
     let popup_area = Rect {
         height: popup_height,
         ..area
@@ -130,13 +138,12 @@ fn render_popup(popup: &Popup, frame: &mut Frame, area: Rect) {
     frame.render_widget(title, title_area);
 
     // render image
-    if let Ok(image_pointer) = image_result {
-        if let Ok(image) = image_pointer.try_read() {
-            let mut image = image.data.clone();
-            let sf_image = StatefulImage::new(None);
-            frame.render_stateful_widget(sf_image, image_area, &mut image);
-        }
-    }
+    // if let Some(url) = &popup.entry.image_url {
+    //     if let Some(mut image) = image_cache.get_or_download(url) {
+    //         let sf_image = StatefulImage::new(None);
+    //         frame.render_stateful_widget(sf_image, image_area, &mut image);
+    //     }
+    // }
 
     frame.render_widget(
         description,

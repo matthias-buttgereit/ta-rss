@@ -63,7 +63,7 @@ impl<B: Backend> Tui<B> {
 pub async fn start(app: &mut App) -> anyhow::Result<()> {
     let backend = CrosstermBackend::new(io::stdout());
     let terminal = Terminal::new(backend)?;
-    let events = Handler::new(20);
+    let events = Handler::new(100);
     let mut tui = Tui::new(terminal, events);
     tui.init()?;
 

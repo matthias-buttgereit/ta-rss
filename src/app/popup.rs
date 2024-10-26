@@ -1,9 +1,12 @@
 use std::sync::Arc;
 
+use ratatui_image::thread::ThreadImage;
+
 use crate::feed::entry::Entry;
 
 pub struct Popup {
     pub entry: Arc<Entry>,
+    pub image: Option<ThreadImage>,
     pub scroll_offset: u16,
 }
 impl Popup {
@@ -11,6 +14,7 @@ impl Popup {
         Self {
             entry,
             scroll_offset: 0,
+            image: None,
         }
     }
 
