@@ -10,16 +10,42 @@ use crate::{
     },
     tui,
 };
-use cli::Commands;
-use config::Config;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use fxhash::FxHashMap;
-use popup::Popup;
-use ratatui_image::{protocol::StatefulProtocol, thread::ThreadImage};
+use clap::{Parser, Subcommand};
+use ratatui_image::thread::ThreadProtocol;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 
 const CONFIG_FILE_NAME: &str = "feeds.json";
+
+pub struct Popup {
+    pub entry: Arc<Entry>,
+    pub scroll_offset: u16,
+    pub image: Option<ThreadProtocol>,
+}
+
+impl Popup {
+    pub fn new(entry: Arc<Entry>) -> Self {
+        if let Some(_image_url) = &entry.image_url {
+            // let image = fetch_image(image_url);
+            Self {
+                entry,
+                scroll_offset: 0,
+                image: None,
+            }
+        } else {
+            Self {
+                entry,
+                scroll_offset: 0,
+                image: None,
+            }
+        }
+    }
+}
+
+fn _fetch_image(image_url: &str) -> Arc<ThreadProtocol> {
+    todo!("fetch image from url: {image_url}")
+}
 
 pub struct App {
     pub running: bool,
@@ -108,6 +134,7 @@ impl App {
 
             self.list_state.select(Some(new_index));
             if self.popup.is_some() {
+                self.popup_scroll_offset = 0;
                 self.popup = Some(Popup::new(self.all_entries[new_index].clone()));
             }
         }
@@ -123,6 +150,7 @@ impl App {
 
             self.list_state.select(Some(new_index));
             if self.popup.is_some() {
+                self.popup_scroll_offset = 0;
                 self.popup = Some(Popup::new(self.all_entries[new_index].clone()));
             }
         }
