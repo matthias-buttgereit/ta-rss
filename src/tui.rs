@@ -2,83 +2,24 @@ pub mod render;
 
 use crate::{
     app::App,
-    event::{
-        handler::{Handler, InputHandler},
-        Event,
-    },
+    events::{Event, EventHandler},
 };
-use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture},
-    terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
-};
-use ratatui::{
-    prelude::{Backend, CrosstermBackend},
-    Terminal,
-};
-use std::io;
-
-#[derive(Debug)]
-pub struct Tui<B: Backend> {
-    terminal: Terminal<B>,
-    pub events: Handler,
-}
-
-impl<B: Backend> Tui<B> {
-    pub fn new(terminal: Terminal<B>, events: Handler) -> Self {
-        Self { terminal, events }
-    }
-
-    pub fn init(&mut self) -> anyhow::Result<()> {
-        terminal::enable_raw_mode()?;
-        ratatui::crossterm::execute!(std::io::stdout(), EnterAlternateScreen, EnableMouseCapture)?;
-        let panic_hook = std::panic::take_hook();
-        std::panic::set_hook(Box::new(move |panic| {
-            Self::reset().expect("failed to reset the terminal");
-            panic_hook(panic);
-        }));
-
-        self.terminal.hide_cursor()?;
-        self.terminal.clear()?;
-        Ok(())
-    }
-
-    pub fn draw(&mut self, app: &mut App) -> anyhow::Result<()> {
-        self.terminal.draw(|frame| render::render(app, frame))?;
-        Ok(())
-    }
-
-    fn reset() -> anyhow::Result<()> {
-        terminal::disable_raw_mode()?;
-        ratatui::crossterm::execute!(std::io::stdout(), LeaveAlternateScreen, DisableMouseCapture)?;
-        Ok(())
-    }
-
-    pub fn exit(&mut self) -> anyhow::Result<()> {
-        Self::reset()?;
-        self.terminal.show_cursor()?;
-        Ok(())
-    }
-}
 
 pub async fn start(app: &mut App) -> anyhow::Result<()> {
-    let backend = CrosstermBackend::new(io::stdout());
-    let terminal = Terminal::new(backend)?;
-    let events = Handler::new(100);
-    let mut tui = Tui::new(terminal, events);
-    tui.init()?;
+    let mut tui = ratatui::init();
+    let mut events = EventHandler::new(60);
 
     while app.running {
-        match tui.events.next().await? {
+        tui.draw(|frame| render::render(app, frame))?;
+        match events.next().await? {
             Event::Tick => app.tick(),
-            Event::Key(key_event) => app.handle_key_events(key_event),
-            Event::Mouse(mouse_event) => app.handle_mouse_event(mouse_event),
+            Event::Key(key_event) => EventHandler::handle_key_events(app, key_event)?,
+            Event::Mouse(mouse_event) => EventHandler::handle_mouse_events(app, mouse_event)?,
             Event::Resize(_, _) => {}
-            Event::Paste(text) => app.handle_paste_event(&text),
+            Event::Paste(text) => EventHandler::handle_paste_event(app, &text)?,
         }
-
-        tui.draw(app)?;
     }
 
-    tui.exit()?;
+    ratatui::restore();
     Ok(())
 }

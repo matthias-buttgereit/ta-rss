@@ -1,4 +1,4 @@
-use crate::app::{App, Popup};
+use crate::app::{popup::Popup, App};
 use chrono::Utc;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -11,14 +11,6 @@ use ratatui_image::{thread::ThreadImage, Resize};
 use std::io::Cursor;
 
 pub fn render(app: &mut App, frame: &mut Frame) {
-    let right_side = Rect {
-        x: 0,
-        y: 0,
-        width: frame.area().width,
-        height: frame.area().height,
-    };
-    frame.render_widget(Clear, right_side);
-
     let window_area = frame.area();
     let main_area = Rect {
         height: window_area.height - 1,
@@ -55,7 +47,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     }
 }
 
-fn render_instructions(frame: &mut Frame<'_>, window_area: Rect) {
+fn render_instructions(frame: &mut Frame, window_area: Rect) {
     let instructions = Paragraph::new("Add feeds by running `ta-rss add <url>`")
         .alignment(Alignment::Center)
         .wrap(Wrap { trim: true });

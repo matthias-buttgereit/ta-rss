@@ -9,23 +9,24 @@ edition = "2021"
 unsafe_code = "forbid"
 
 [dependencies]
-anyhow = "1.0.91"
-atom_syndication = "0.12"
-chrono = "0.4"
+anyhow = "1.0.92"
+atom_syndication = "0.12.4"
+chrono = "0.4.38"
 clap = { version = "4.5.20", features = ["derive"] }
-crossterm = { version = "0.28", features = ["event-stream"] }
+crossterm = { version = "0.28.1", features = ["event-stream"] }
 futures = "0.3.31"
+fxhash = "0.2.1"
 html2text = "0.13.2"
 image = "0.25.4"
-open = "5.3"
+open = "5.3.0"
 ratatui = { version = "0.29.0", features = ["unstable-rendered-line-info"] }
 ratatui-image = { git = "https://github.com/benjajaja/ratatui-image", features = [
     "crossterm",
 ] }
-reqwest = "0.12.8"
-rss = { version = "2.0", features = ["atom", "atom_syndication"] }
-scraper = "0.20"
-serde = { version = "1.0.213", features = ["derive"] }
+reqwest = "0.12.9"
+rss = { version = "2.0.9", features = ["atom", "atom_syndication"] }
+scraper = "0.21.0"
+serde = { version = "1.0.214", features = ["derive"] }
 serde_json = "1.0.132"
 tokio = { version = "1.41.0", features = ["full"] }
 

@@ -3,50 +3,27 @@ pub mod config;
 pub mod popup;
 
 use crate::{
-    event::handler::InputHandler,
     feed::{
         entry::{check_url, Entry},
         Feed,
     },
     tui,
 };
-use clap::{Parser, Subcommand};
+use cli::Commands;
+use config::Config;
+use fxhash::FxHashMap;
+use popup::Popup;
 use ratatui_image::thread::ThreadProtocol;
-use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 
 const CONFIG_FILE_NAME: &str = "feeds.json";
 
-pub struct Popup {
-    pub entry: Arc<Entry>,
-    pub scroll_offset: u16,
-    pub image: Option<ThreadProtocol>,
-}
-
-impl Popup {
-    pub fn new(entry: Arc<Entry>) -> Self {
-        if let Some(_image_url) = &entry.image_url {
-            // let image = fetch_image(image_url);
-            Self {
-                entry,
-                scroll_offset: 0,
-                image: None,
-            }
-        } else {
-            Self {
-                entry,
-                scroll_offset: 0,
-                image: None,
-            }
-        }
-    }
-}
-
 fn _fetch_image(image_url: &str) -> Arc<ThreadProtocol> {
     todo!("fetch image from url: {image_url}")
 }
 
+#[allow(dead_code, clippy::type_complexity)]
 pub struct App {
     pub running: bool,
     feed_urls: Vec<String>,
@@ -55,10 +32,10 @@ pub struct App {
     pub all_entries: Vec<Arc<Entry>>,
     pub list_state: ratatui::widgets::ListState,
     feed_channel: (mpsc::Sender<Feed>, mpsc::Receiver<Feed>),
-    pub image_cache: FxHashMap<String, Box<dyn StatefulProtocol>>,
+    pub image_cache: FxHashMap<String, ThreadProtocol>,
     image_channel: (
-        Sender<(String, ThreadImage)>,
-        Receiver<(String, ThreadImage)>,
+        Sender<(String, ThreadProtocol)>,
+        Receiver<(String, ThreadProtocol)>,
     ),
 }
 
@@ -124,7 +101,7 @@ impl App {
         Ok(title)
     }
 
-    fn select_previous(&mut self) {
+    pub fn select_previous(&mut self) {
         if let Some(index) = self.list_state.selected() {
             let new_index = if index == 0 {
                 self.all_entries.len() - 1
@@ -134,13 +111,12 @@ impl App {
 
             self.list_state.select(Some(new_index));
             if self.popup.is_some() {
-                self.popup_scroll_offset = 0;
                 self.popup = Some(Popup::new(self.all_entries[new_index].clone()));
             }
         }
     }
 
-    fn select_next(&mut self) {
+    pub fn select_next(&mut self) {
         if let Some(index) = self.list_state.selected() {
             let new_index = if index == self.all_entries.len() - 1 {
                 0
@@ -150,7 +126,6 @@ impl App {
 
             self.list_state.select(Some(new_index));
             if self.popup.is_some() {
-                self.popup_scroll_offset = 0;
                 self.popup = Some(Popup::new(self.all_entries[new_index].clone()));
             }
         }
@@ -185,7 +160,7 @@ impl App {
         Ok(format!("Removed feed: {url}"))
     }
 
-    fn toggle_popup(&mut self) {
+    pub fn toggle_popup(&mut self) {
         if self.popup.is_some() {
             self.popup = None;
         } else if let Some(index) = self.list_state.selected() {
@@ -208,62 +183,28 @@ impl App {
         Ok(())
     }
 
+    pub fn scroll_down(&mut self) {
+        if let Some(popup) = self.popup.as_mut() {
+            popup.scroll_down();
+        }
+    }
+
+    pub fn scroll_up(&mut self) {
+        if let Some(popup) = self.popup.as_mut() {
+            popup.scroll_up();
+        }
+    }
+
+    #[allow(dead_code)]
     fn check_for_image(&mut self) {
         if let Some(popup) = &self.popup.as_mut() {
-            if let Some(image_url) = &popup.entry.image_url {
+            if let Some(_image_url) = &popup.entry.image_url {
                 todo!("Check if image is already cached, if not download it.");
             }
         }
     }
 
     fn receive_images(&mut self) {
-        if let Ok(image) = self.image_channel.1.try_recv() {}
-    }
-}
-
-impl InputHandler for App {
-    fn handle_key_events(&mut self, key_event: KeyEvent) {
-        match key_event.code {
-            KeyCode::Char('q') => self.quit(),
-            KeyCode::Char('c' | 'C') => {
-                if key_event.modifiers == KeyModifiers::CONTROL {
-                    self.quit();
-                }
-            }
-            KeyCode::Char(' ') => {
-                self.toggle_popup();
-            }
-            KeyCode::Char('o' | 'O') => {
-                if let Some(popup) = &self.popup {
-                    let url = &popup.entry.url;
-                    let _open_error = open::that_in_background(url);
-                };
-            }
-            KeyCode::Esc => {
-                if self.popup.is_some() {
-                    self.popup = None;
-                } else {
-                    self.quit();
-                }
-            }
-            KeyCode::Up => self.select_previous(),
-            KeyCode::Down => self.select_next(),
-            _ => {}
-        }
-    }
-
-    fn handle_mouse_event(&mut self, mouse_event: crossterm::event::MouseEvent) {
-        if let Some(popup) = &mut self.popup {
-            if mouse_event.kind == crossterm::event::MouseEventKind::ScrollDown {
-                popup.scroll_down();
-            }
-            if mouse_event.kind == crossterm::event::MouseEventKind::ScrollUp {
-                popup.scroll_up();
-            }
-        }
-    }
-
-    fn handle_paste_event(&mut self, _text: &str) {
-        todo!("Paste event not implemented yet. Depends on crossterm feature 'bracketed-paste'.");
+        if let Ok(_image) = self.image_channel.1.try_recv() {}
     }
 }
