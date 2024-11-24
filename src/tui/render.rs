@@ -7,7 +7,7 @@ use ratatui::{
     widgets::{block::Title, Block, BorderType, Clear, List, Paragraph, Wrap},
     Frame,
 };
-use ratatui_image::{thread::ThreadImage, Resize};
+// use ratatui_image::{thread::ThreadImage, Resize};
 use std::io::Cursor;
 
 pub fn render(app: &mut App, frame: &mut Frame) {
@@ -83,16 +83,16 @@ fn render_popup(popup: &mut Popup, frame: &mut Frame, area: Rect) {
     };
 
     // image
-    let mut image_area = Rect::default();
+    // let mut image_area = Rect::default();
     let mut y_coordinate = title_area.y + title_height + 1;
 
     if popup.image.is_some() {
-        image_area = Rect {
-            x: area.x + 2,
-            y: y_coordinate,
-            width: area.width - 4,
-            height: (area.width - 4) / 4, // TODO clamp height to not overflow in short terminals
-        };
+        // image_area = Rect {
+        //     x: area.x + 2,
+        //     y: y_coordinate,
+        //     width: area.width - 4,
+        //     height: (area.width - 4) / 4, // TODO clamp height to not overflow in short terminals
+        // };
         y_coordinate += 10;
     }
 
@@ -140,10 +140,10 @@ fn render_popup(popup: &mut Popup, frame: &mut Frame, area: Rect) {
     frame.render_widget(title, title_area);
 
     // render image here
-    if let Some(image) = &mut popup.image {
-        let sf_image = ThreadImage::default().resize(Resize::Crop(None));
-        frame.render_stateful_widget(sf_image, image_area, image);
-    }
+    // if let Some(image) = &mut popup.image {
+    //     let sf_image = ThreadImage::default().resize(Resize::Crop(None));
+    //     frame.render_stateful_widget(sf_image, image_area, image);
+    // }
 
     frame.render_widget(
         description,

@@ -63,9 +63,7 @@ impl EventHandler {
                         sender_clone.send(Event::Resize(x, y)).unwrap_or_default();
                       },
 
-                      CrosstermEvent::FocusLost => {},
-
-                      CrosstermEvent::FocusGained => {},
+                      CrosstermEvent::FocusLost | CrosstermEvent::FocusGained => {},
 
                       CrosstermEvent::Paste(text) => {
                         sender_clone.send(Event::Paste(text)).unwrap_or_default();
@@ -90,7 +88,7 @@ impl EventHandler {
             .ok_or(anyhow::anyhow!("Failed to receive event"))
     }
 
-    pub fn handle_key_events(app: &mut App, key_event: KeyEvent) -> anyhow::Result<()> {
+    pub fn handle_key_events(app: &mut App, key_event: KeyEvent) {
         match key_event.code {
             KeyCode::Char('q') => app.quit(),
             KeyCode::Char('c' | 'C') => {
@@ -118,15 +116,13 @@ impl EventHandler {
             KeyCode::Down => app.select_next(),
             _ => {}
         }
-
-        Ok(())
     }
 
     pub fn handle_paste_event(_app: &mut App, _text: &str) -> anyhow::Result<()> {
         todo!("Paste event not implemented yet. Depends on crossterm feature 'bracketed-paste'.");
     }
 
-    pub fn handle_mouse_events(app: &mut App, mouse_event: MouseEvent) -> anyhow::Result<()> {
+    pub fn handle_mouse_events(app: &mut App, mouse_event: MouseEvent) {
         match mouse_event.kind {
             crossterm::event::MouseEventKind::ScrollDown => {
                 app.scroll_down();
@@ -136,7 +132,5 @@ impl EventHandler {
             }
             _ => {}
         }
-
-        Ok(())
     }
 }
