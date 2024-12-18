@@ -56,10 +56,6 @@ impl App {
     }
 
     pub fn quit(&mut self) {
-        // save image cache keys to file
-        let image_cache_keys: Vec<String> = self.image_cache.keys().cloned().collect();
-        let file = std::fs::File::create("image_cache_keys.json").unwrap();
-        serde_json::to_writer(file, &image_cache_keys).unwrap();
         self.running = false;
     }
 
