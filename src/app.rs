@@ -10,40 +10,41 @@ use config::Config;
 use fxhash::FxHashMap;
 use image::DynamicImage;
 use popup::Popup;
+use ratatui::widgets::ListState;
 use std::sync::Arc;
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use tokio::sync::mpsc::{channel, Receiver, Sender};
 
 const CONFIG_FILE_NAME: &str = "feeds.json";
 
-#[allow(dead_code, clippy::type_complexity)]
+type Img = (String, DynamicImage);
+
 pub struct App {
     pub running: bool,
+    pub tick_rate: u64,
     feed_urls: Vec<String>,
     pub popup: Option<Popup>,
     pub feeds: Vec<Feed>,
     pub all_entries: Vec<Arc<Entry>>,
-    pub list_state: ratatui::widgets::ListState,
-    feed_channel: (mpsc::Sender<Feed>, mpsc::Receiver<Feed>),
+    pub list_state: ListState,
+    feed_channel: (Sender<Feed>, Receiver<Feed>),
     pub image_cache: FxHashMap<String, Option<DynamicImage>>,
-    image_channel: (
-        Sender<(String, DynamicImage)>,
-        Receiver<(String, DynamicImage)>,
-    ),
+    image_channel: (Sender<Img>, Receiver<Img>),
 }
 
 impl App {
     pub fn new() -> Self {
         let feed_urls = Config::load().unwrap_or_default();
-        let feed_channel = mpsc::channel(feed_urls.len().max(1));
-        let image_channel = mpsc::channel(10);
+        let feed_channel = channel(feed_urls.len().max(1));
+        let image_channel = channel(10);
 
         Self {
             running: true,
+            tick_rate: 10,
             feed_urls,
             popup: None,
             feeds: Vec::new(),
             all_entries: Vec::new(),
-            list_state: ratatui::widgets::ListState::default(),
+            list_state: ListState::default(),
             feed_channel,
             image_cache: FxHashMap::default(),
             image_channel,

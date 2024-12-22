@@ -7,7 +7,7 @@ use crate::{
 
 pub async fn start(app: &mut App) -> anyhow::Result<()> {
     let mut tui = ratatui::init();
-    let mut events = EventHandler::new(60);
+    let mut events = EventHandler::new(app.tick_rate);
 
     while app.running {
         tui.draw(|frame| render::render(app, frame))?;
@@ -15,7 +15,7 @@ pub async fn start(app: &mut App) -> anyhow::Result<()> {
             Event::Tick => app.tick(),
             Event::Key(key_event) => EventHandler::handle_key_events(app, key_event),
             Event::Mouse(mouse_event) => EventHandler::handle_mouse_events(app, mouse_event),
-            Event::Resize(_, _) => {}
+            Event::Resize(x, y) => EventHandler::handle_resize_event(app, x, y),
             Event::Paste(text) => EventHandler::handle_paste_event(app, &text)?,
         }
     }

@@ -1,6 +1,6 @@
 pub mod entry;
 
-use chrono::DateTime;
+use chrono::{DateTime, FixedOffset};
 use entry::{get_image_url_for_atom, get_image_url_for_rss, Entry};
 use reqwest::Client;
 use std::sync::Arc;
@@ -10,7 +10,7 @@ pub struct Feed {
     pub _url: Arc<String>,
     pub name: Arc<String>,
     pub entries: Vec<Arc<Entry>>,
-    pub _pub_date: Option<chrono::DateTime<::chrono::FixedOffset>>,
+    pub _pub_date: Option<DateTime<FixedOffset>>,
 }
 
 impl Feed {

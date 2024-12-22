@@ -13,16 +13,14 @@ pub enum Event {
     Key(KeyEvent),
     Mouse(MouseEvent),
     Paste(String),
-    #[expect(dead_code)]
     Resize(u16, u16),
 }
 
-#[expect(dead_code)]
 #[derive(Debug)]
 pub struct EventHandler {
-    sender: mpsc::UnboundedSender<Event>,
+    _sender: mpsc::UnboundedSender<Event>,
     receiver: mpsc::UnboundedReceiver<Event>,
-    handler: tokio::task::JoinHandle<()>,
+    _handler: tokio::task::JoinHandle<()>,
 }
 
 impl EventHandler {
@@ -75,9 +73,9 @@ impl EventHandler {
         });
 
         Self {
-            sender,
+            _sender: sender,
             receiver,
-            handler,
+            _handler: handler,
         }
     }
 
@@ -118,10 +116,6 @@ impl EventHandler {
         }
     }
 
-    pub fn handle_paste_event(_app: &mut App, _text: &str) -> anyhow::Result<()> {
-        todo!("Paste event not implemented yet. Depends on crossterm feature 'bracketed-paste'.");
-    }
-
     pub fn handle_mouse_events(app: &mut App, mouse_event: MouseEvent) {
         match mouse_event.kind {
             crossterm::event::MouseEventKind::ScrollDown => {
@@ -133,4 +127,10 @@ impl EventHandler {
             _ => {}
         }
     }
+
+    pub fn handle_paste_event(_app: &mut App, _text: &str) -> anyhow::Result<()> {
+        todo!("Paste event not implemented yet. Depends on crossterm feature 'bracketed-paste'.");
+    }
+
+    pub fn handle_resize_event(_app: &mut App, _x: u16, _y: u16) {}
 }
