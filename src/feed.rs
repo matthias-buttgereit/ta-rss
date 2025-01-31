@@ -32,12 +32,18 @@ impl Feed {
                     return;
                 };
 
-                if let Ok(channel) = rss::Channel::read_from(&bytes[..]) {
-                    let feed = get_rss_feed(channel, url);
-                    tx.send(feed).await.unwrap_or_default();
-                } else if let Ok(atom_feed) = atom_syndication::Feed::read_from(&bytes[..]) {
-                    let feed = get_atom_feed(url, atom_feed);
-                    tx.send(feed).await.unwrap_or_default();
+                match rss::Channel::read_from(&bytes[..]) {
+                    Ok(channel) => {
+                        let feed = get_rss_feed(channel, url);
+                        tx.send(feed).await.unwrap_or_default();
+                    } _ => {
+                        match atom_syndication::Feed::read_from(&bytes[..]) { 
+                            Ok(atom_feed) => {
+                                let feed = get_atom_feed(url, atom_feed);
+                                tx.send(feed).await.unwrap_or_default();
+                            } _ => {}
+                        }
+                    }
                 }
             });
         }

@@ -46,8 +46,8 @@ impl Ord for Entry {
 }
 
 pub async fn check_url(url: &str) -> anyhow::Result<String> {
-    if let Ok(response) = reqwest::get(url).await {
-        if let Ok(result) = response.bytes().await {
+    match reqwest::get(url).await { Ok(response) => {
+        match response.bytes().await { Ok(result) => {
             if let Ok(channel) = rss::Channel::read_from(&result[..]) {
                 return Ok(channel.title);
             }
@@ -55,12 +55,12 @@ pub async fn check_url(url: &str) -> anyhow::Result<String> {
                 return Ok(feed.title.value);
             }
             Err(anyhow::anyhow!("Unable to parse feed."))
-        } else {
+        } _ => {
             Err(anyhow::anyhow!("Unable to read feed."))
-        }
-    } else {
+        }}
+    } _ => {
         Err(anyhow::anyhow!("Unable to fetch feed."))
-    }
+    }}
 }
 
 pub fn get_image_url_for_rss(entry: &rss::Item) -> Option<String> {
