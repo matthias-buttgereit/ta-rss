@@ -11,12 +11,13 @@ pub async fn start(app: &mut App) -> anyhow::Result<()> {
 
     while app.running {
         tui.draw(|frame| render::render(app, frame))?;
+
         match events.next().await? {
             Event::Tick => app.tick(),
             Event::Key(key_event) => EventHandler::handle_key_events(app, key_event),
             Event::Mouse(mouse_event) => EventHandler::handle_mouse_events(app, mouse_event),
             Event::Resize(x, y) => EventHandler::handle_resize_event(app, x, y),
-            Event::Paste(text) => EventHandler::handle_paste_event(app, &text)?,
+            Event::Paste(text) => EventHandler::handle_paste_event(app, text),
         }
     }
 
