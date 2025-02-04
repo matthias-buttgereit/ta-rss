@@ -3,7 +3,7 @@ name = "ta-rss"
 version = "0.1.0"
 authors = ["Matthias Buttgereit <matthias.buttgereit@outlook.com>"]
 license = "MIT"
-edition = "2024"
+edition = "2021"
 
 [lints.rust]
 unsafe_code = "forbid"
@@ -12,7 +12,7 @@ unsafe_code = "forbid"
 anyhow = "=1.0.95"
 atom_syndication = "=0.12.6"
 chrono = "=0.4.39"
-clap = { version = "=4.5.27", features = ["derive"] }
+clap = { version = "=4.5.28", features = ["derive"] }
 crossterm = { version = "=0.28.1", features = ["event-stream"] }
 futures = "=0.3.31"
 fxhash = "=0.2.1"
