@@ -3,7 +3,7 @@ name = "ta-rss"
 version = "0.1.0"
 authors = ["Matthias Buttgereit <matthias.buttgereit@outlook.com>"]
 license = "MIT"
-edition = "2021"
+edition = "2024"
 
 [lints.rust]
 unsafe_code = "forbid"
